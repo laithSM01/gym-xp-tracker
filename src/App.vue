@@ -28,7 +28,12 @@ function handleSignedIn() {
       return await getToken.value({ template: 'convex', skipCache: forceRefreshToken })
     },
     () => {
-      authStore.setLoaded(true, false)
+      // Only treat as signed out if Clerk also confirms the user is not signed in.
+      // This prevents a brief false negative during Convex token refresh from
+      // clearing auth state and triggering the router guard.
+      if (!isSignedIn.value) {
+        authStore.setLoaded(true, false)
+      }
     },
   )
 

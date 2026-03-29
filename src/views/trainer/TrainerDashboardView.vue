@@ -1,7 +1,140 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { ref, inject, onUnmounted, computed } from 'vue'
+import { RouterLink } from 'vue-router'
+import type { ConvexClient } from 'convex/browser'
+import { api } from '@convex/_generated/api'
+import { useAuthStore } from '@/stores/auth'
+
+const convex = inject<ConvexClient>('convex')!
+const authStore = useAuthStore()
+
+type Tier = 'beginner' | 'novice' | 'intermediate' | 'advanced' | 'elite'
+
+type Client = {
+  _id: string
+  userName: string
+  currentXP: number
+  currentTier: Tier
+  goal: string
+  isEnrolled: boolean
+  age: number
+}
+
+const clients = ref<Client[] | null>(null)
+
+const { unsubscribe } = convex.onUpdate(api.clients.getMyClients, {}, (data) => {
+  clients.value = data as Client[] | null
+})
+
+onUnmounted(() => unsubscribe())
+
+const trainerName = computed(() => authStore.convexUser?.name ?? 'Trainer')
+const enrolledCount = computed(() => clients.value?.filter((c) => c.isEnrolled).length ?? 0)
+
+const tierConfig: Record<Tier, { label: string; badge: string; bar: string }> = {
+  beginner: {
+    label: 'Beginner',
+    badge: 'bg-gray-100 text-gray-600 ring-gray-200',
+    bar: 'bg-gray-400',
+  },
+  novice: {
+    label: 'Novice',
+    badge: 'bg-blue-100 text-blue-600 ring-blue-200',
+    bar: 'bg-blue-500',
+  },
+  intermediate: {
+    label: 'Intermediate',
+    badge: 'bg-amber-100 text-amber-600 ring-amber-200',
+    bar: 'bg-amber-500',
+  },
+  advanced: {
+    label: 'Advanced',
+    badge: 'bg-purple-100 text-purple-600 ring-purple-200',
+    bar: 'bg-purple-500',
+  },
+  elite: {
+    label: 'Elite',
+    badge: 'bg-green-100 text-green-600 ring-green-200',
+    bar: 'bg-green-500',
+  },
+}
+
+const tierMax: Record<Tier, number> = {
+  beginner: 500,
+  novice: 1000,
+  intermediate: 2000,
+  advanced: 3000,
+  elite: 3000,
+}
+
+const tierMin: Record<Tier, number> = {
+  beginner: 0,
+  novice: 500,
+  intermediate: 1000,
+  advanced: 2000,
+  elite: 3000,
+}
+
+function xpProgress(xp: number, tier: Tier): number {
+  if (tier === 'elite') return 100
+  return Math.min(100, Math.round(((xp - tierMin[tier]) / (tierMax[tier] - tierMin[tier])) * 100))
+}
+</script>
 
 <template>
   <div>
-    <h1 class="text-2xl font-bold text-gray-900">Trainer Dashboard</h1>
+    <!-- Header -->
+    <div class="mb-8">
+      <h1 class="text-2xl font-bold text-gray-900">Welcome back, {{ trainerName }}</h1>
+      <p class="mt-1 text-gray-500">
+        You have
+        <span class="font-semibold text-gray-700">{{ enrolledCount }}</span>
+        active client{{ enrolledCount !== 1 ? 's' : '' }}
+      </p>
+    </div>
+
+    <!-- Loading -->
+    <div v-if="clients === null" class="flex items-center justify-center py-24">
+      <div class="w-8 h-8 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
+    </div>
+
+    <!-- Empty -->
+    <div v-else-if="clients.length === 0" class="text-center py-24 text-gray-400">
+      <p class="text-lg font-medium">No clients yet</p>
+      <p class="text-sm mt-1">Clients will appear here once they're assigned to you.</p>
+    </div>
+
+    <!-- Client grid -->
+    <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      <RouterLink v-for="client in clients" :key="client._id" :to="`/trainer/client/${client._id}`"
+        class="block text-left bg-white rounded-2xl border border-gray-200 p-5 shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-150">
+        <!-- Name + tier badge -->
+        <div class="flex items-start justify-between gap-2 mb-3">
+          <span class="font-semibold text-gray-900 truncate">{{ client.userName }}</span>
+          <span class="shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full ring-1"
+            :class="tierConfig[client.currentTier].badge">
+            {{ tierConfig[client.currentTier].label }}
+          </span>
+        </div>
+
+        <!-- Goal -->
+        <p class="text-sm text-gray-500 mb-4 line-clamp-2">{{ client.goal }}</p>
+
+        <!-- XP bar -->
+        <div>
+          <div class="flex justify-between text-xs text-gray-400 mb-1">
+            <span>{{ client.currentXP.toLocaleString() }} XP</span>
+            <span v-if="client.currentTier !== 'elite'">
+              {{ tierMax[client.currentTier].toLocaleString() }}
+            </span>
+            <span v-else class="text-green-500 font-semibold">MAX</span>
+          </div>
+          <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div class="h-full rounded-full transition-all duration-500" :class="tierConfig[client.currentTier].bar"
+              :style="{ width: xpProgress(client.currentXP, client.currentTier) + '%' }" />
+          </div>
+        </div>
+      </RouterLink>
+    </div>
   </div>
 </template>

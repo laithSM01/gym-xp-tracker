@@ -1,64 +1,36 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
+import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(),
   routes: [
     {
-      path: '/',
-      redirect: '/dashboard',
-    },
-    {
       path: '/sign-in',
-      component: () => import('../layouts/AuthLayout.vue'),
-      meta: { requiresGuest: true },
+      component: () => import('@/layouts/AuthLayout.vue'),
     },
     {
       path: '/onboarding',
-      component: () => import('../views/OnboardingView.vue'),
-      meta: { requiresAuth: true },
+      component: () => import('@/views/OnboardingView.vue'),
     },
     {
-      path: '/dashboard',
-      redirect: () => {
-        const authStore = useAuthStore()
-        const role = authStore.convexUser?.role
-        if (role === 'trainer') return '/trainer/dashboard'
-        if (role === 'client') return '/client/dashboard'
-        if (role === 'nutritionist') return '/nutritionist/dashboard'
-        return '/onboarding'
-      },
-    },
-    {
-      path: '/trainer',
-      component: () => import('../layouts/AppLayout.vue'),
-      meta: { requiresAuth: true },
+      path: '/',
+      component: () => import('@/layouts/AppLayout.vue'),
       children: [
         {
-          path: 'dashboard',
-          component: () => import('../views/trainer/TrainerDashboardView.vue'),
+          path: 'trainer/dashboard',
+          component: () => import('@/views/trainer/TrainerDashboardView.vue'),
         },
-      ],
-    },
-    {
-      path: '/client',
-      component: () => import('../layouts/AppLayout.vue'),
-      meta: { requiresAuth: true },
-      children: [
         {
-          path: 'dashboard',
-          component: () => import('../views/client/ClientDashboardView.vue'),
+          path: 'trainer/client/:clientId',
+          component: () => import('@/views/trainer/ClientDetailView.vue'),
         },
-      ],
-    },
-    {
-      path: '/nutritionist',
-      component: () => import('../layouts/AppLayout.vue'),
-      meta: { requiresAuth: true },
-      children: [
         {
-          path: 'dashboard',
-          component: () => import('../views/nutritionist/NutritionistDashboardView.vue'),
+          path: 'client/dashboard',
+          component: () => import('@/views/client/ClientDashboardView.vue'),
+        },
+        {
+          path: 'nutritionist/dashboard',
+          component: () => import('@/views/nutritionist/NutritionistDashboardView.vue'),
         },
       ],
     },
@@ -67,19 +39,16 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   const authStore = useAuthStore()
-
-  // Wait for Clerk to finish loading
   await authStore.waitForLoad()
 
-  // Redirect unauthenticated users away from protected routes
-  if (to.meta.requiresAuth && !authStore.isSignedIn) {
-    return { path: '/sign-in' }
+  if (!authStore.isSignedIn && to.path !== '/sign-in' && to.path !== '/onboarding') {
+    return '/sign-in'
   }
 
-  // Redirect authenticated users away from guest routes
-  if (to.meta.requiresGuest && authStore.isSignedIn) {
-    return { path: '/dashboard' }
+  if (authStore.isSignedIn && to.path === '/sign-in') {
+    return '/onboarding'
   }
+  return true
 })
 
 export default router
