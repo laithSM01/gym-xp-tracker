@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"const pkg = require\\(''./node_modules/convex/package.json''\\); console.log\\(Object.keys\\(pkg.exports\\).join\\(''\\\\n''\\)\\)\")"
+    ]
+  }
+}
