@@ -4,7 +4,7 @@ import { v } from "convex/values";
 export default defineSchema({
   users: defineTable({
     tokenIdentifier: v.string(),
-    clerkId: v.string(),
+    clerkId: v.optional(v.string()),
     name: v.optional(v.string()),
     email: v.optional(v.string()),
     role: v.union(
@@ -12,10 +12,9 @@ export default defineSchema({
       v.literal("client"),
       v.literal("nutritionist"),
     ),
-    createdAt: v.number(),
+    createdAt: v.optional(v.number()),
   })
-    .index("by_token", ["tokenIdentifier"])
-    .index("by_clerkId", ["clerkId"]),
+    .index("by_token", ["tokenIdentifier"]),
 
   clients: defineTable({
     userId: v.id("users"),

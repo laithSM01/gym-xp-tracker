@@ -44,9 +44,11 @@ export const upsertUser = mutation({
 
     return await ctx.db.insert("users", {
       tokenIdentifier: identity.tokenIdentifier,
+      clerkId: identity.subject,
       role: args.role,
       name: identity.name ?? undefined,
       email: identity.email ?? undefined,
+      createdAt: Date.now(),
     });
   },
 });
