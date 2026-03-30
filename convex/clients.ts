@@ -26,24 +26,10 @@ export const getMyClients = query({
       .unique();
     if (!trainer) return null;
 
-    let clients = await ctx.db
+    const clients = await ctx.db
       .query("clients")
       .withIndex("by_trainerId", (q) => q.eq("trainerId", trainer._id))
       .take(100);
-
-    // Demo fallback: if no clients assigned to this trainer, use the first
-    // seeded trainer's clients so real data shows on screen during development.
-    if (clients.length === 0) {
-      const firstClient = await ctx.db.query("clients").first();
-      if (firstClient) {
-        clients = await ctx.db
-          .query("clients")
-          .withIndex("by_trainerId", (q) =>
-            q.eq("trainerId", firstClient.trainerId),
-          )
-          .take(100);
-      }
-    }
 
     const enriched = await Promise.all(
       clients.map(async (client) => {
@@ -137,12 +123,7 @@ export const getMyProfile = query({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      console.log("[getMyProfile] no identity");
-      return null;
-    }
-
-    console.log("[getMyProfile] tokenIdentifier:", identity.tokenIdentifier);
+    if (!identity) return null;
 
     const user = await ctx.db
       .query("users")
@@ -151,7 +132,6 @@ export const getMyProfile = query({
       )
       .unique();
 
-    console.log("[getMyProfile] user found:", user ? `${user._id} role=${user.role}` : "null");
     if (!user) return null;
 
     const client = await ctx.db
@@ -159,7 +139,6 @@ export const getMyProfile = query({
       .withIndex("by_userId", (q) => q.eq("userId", user._id))
       .unique();
 
-    console.log("[getMyProfile] client found:", client ? client._id : "null");
     if (!client) return null;
 
     return {
@@ -255,6 +234,14 @@ export const getAccessibleClients = query({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
+
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+    if (!caller || caller.role !== "nutritionist") return null;
 
     const allClients = await ctx.db
       .query("clients")

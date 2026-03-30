@@ -33,6 +33,7 @@ export const logMeasurement = mutation({
 
     const client = await ctx.db.get(args.clientId);
     if (!client) throw new Error("Client not found");
+    if (client.trainerId !== trainer._id) throw new Error("Not authorized");
 
     // Get last measurement for comparison
     const lastMeasurement = await ctx.db
@@ -132,6 +133,21 @@ export const getClientMeasurements = query({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
+
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+    if (!caller) return null;
+
+    const client = await ctx.db.get(args.clientId);
+    if (!client) return null;
+
+    const isClient = client.userId === caller._id;
+    const isTrainer = client.trainerId === caller._id;
+    if (!isClient && !isTrainer) return null;
 
     return await ctx.db
       .query("bodyMeasurements")

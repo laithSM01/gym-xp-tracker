@@ -7,6 +7,24 @@ export const getNutritionPlan = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
 
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+    if (!caller) return null;
+
+    const client = await ctx.db.get(args.clientId);
+    if (!client) return null;
+
+    const isClient = client.userId === caller._id;
+    const isTrainer = client.trainerId === caller._id;
+    const isNutritionist =
+      caller.role === "nutritionist" && client.nutritionistAccess === true;
+
+    if (!isClient && !isTrainer && !isNutritionist) return null;
+
     return await ctx.db
       .query("nutritionPlans")
       .withIndex("by_clientId", (q) => q.eq("clientId", args.clientId))
