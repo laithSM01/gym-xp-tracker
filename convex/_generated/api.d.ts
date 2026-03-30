@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as challenges from "../challenges.js";
 import type * as clients from "../clients.js";
 import type * as measurements from "../measurements.js";
 import type * as seed from "../seed.js";
@@ -20,6 +21,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  challenges: typeof challenges;
   clients: typeof clients;
   measurements: typeof measurements;
   seed: typeof seed;

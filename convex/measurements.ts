@@ -92,6 +92,34 @@ export const logMeasurement = mutation({
   },
 });
 
+export const getMyMeasurements = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+    if (!user) return null;
+
+    const client = await ctx.db
+      .query("clients")
+      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .unique();
+    if (!client) return null;
+
+    return await ctx.db
+      .query("bodyMeasurements")
+      .withIndex("by_clientId", (q) => q.eq("clientId", client._id))
+      .order("desc")
+      .take(10);
+  },
+});
+
 export const getClientMeasurements = query({
   args: { clientId: v.id("clients") },
   handler: async (ctx, args) => {

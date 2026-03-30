@@ -41,6 +41,18 @@ const router = createRouter({
   ],
 })
 
+const roleDashboard: Record<string, string> = {
+  trainer: '/trainer/dashboard',
+  client: '/client/dashboard',
+  nutritionist: '/nutritionist/dashboard',
+}
+
+const rolePrefix: Record<string, string> = {
+  trainer: '/trainer/',
+  client: '/client/',
+  nutritionist: '/nutritionist/',
+}
+
 router.beforeEach(async (to) => {
   const authStore = useAuthStore()
   await authStore.waitForLoad()
@@ -52,6 +64,20 @@ router.beforeEach(async (to) => {
   if (authStore.isSignedIn && to.path === '/sign-in') {
     return '/onboarding'
   }
+
+  if (authStore.isSignedIn) {
+    await authStore.waitForUser()
+    const role = authStore.convexUser?.role
+    if (role) {
+      // If navigating to a role-prefixed route that doesn't belong to this role, redirect
+      for (const [r, prefix] of Object.entries(rolePrefix)) {
+        if (to.path.startsWith(prefix) && r !== role) {
+          return roleDashboard[role]
+        }
+      }
+    }
+  }
+
   return true
 })
 

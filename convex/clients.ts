@@ -133,6 +133,43 @@ export const awardXP = mutation({
   },
 });
 
+export const getMyProfile = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      console.log("[getMyProfile] no identity");
+      return null;
+    }
+
+    console.log("[getMyProfile] tokenIdentifier:", identity.tokenIdentifier);
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+
+    console.log("[getMyProfile] user found:", user ? `${user._id} role=${user.role}` : "null");
+    if (!user) return null;
+
+    const client = await ctx.db
+      .query("clients")
+      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .unique();
+
+    console.log("[getMyProfile] client found:", client ? client._id : "null");
+    if (!client) return null;
+
+    return {
+      ...client,
+      userName: user.name ?? user.email ?? "Unknown",
+      userEmail: user.email,
+    };
+  },
+});
+
 export const getUnassignedClients = query({
   args: {},
   handler: async (ctx) => {
