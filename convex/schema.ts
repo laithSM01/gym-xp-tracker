@@ -94,18 +94,19 @@ export default defineSchema({
   nutritionPlans: defineTable({
     clientId: v.id("clients"),
     nutritionistId: v.id("users"),
-    tier: v.string(),
     meals: v.array(
       v.object({
         name: v.string(),
-        foods: v.array(v.string()),
         calories: v.number(),
-        time: v.optional(v.string()),
+        protein: v.number(),
+        carbs: v.number(),
+        fat: v.number(),
       }),
     ),
-    calories: v.number(),
+    totalCalories: v.number(),
     notes: v.optional(v.string()),
     createdAt: v.number(),
+    updatedAt: v.number(),
   })
     .index("by_clientId", ["clientId"])
     .index("by_nutritionistId", ["nutritionistId"]),

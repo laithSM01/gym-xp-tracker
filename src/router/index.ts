@@ -36,6 +36,10 @@ const router = createRouter({
           path: 'nutritionist/dashboard',
           component: () => import('@/views/nutritionist/NutritionistDashboardView.vue'),
         },
+        {
+          path: 'nutritionist/client/:clientId',
+          component: () => import('@/views/nutritionist/ClientNutritionView.vue'),
+        },
       ],
     },
   ],

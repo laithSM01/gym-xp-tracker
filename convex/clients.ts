@@ -250,6 +250,38 @@ export const createClient = mutation({
   },
 });
 
+export const getAccessibleClients = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+
+    const allClients = await ctx.db
+      .query("clients")
+      .take(200);
+
+    const accessible = allClients.filter(
+      (c) => c.nutritionistAccess === true,
+    );
+
+    const enriched = await Promise.all(
+      accessible.map(async (client) => {
+        const user = await ctx.db.get(client.userId);
+        return {
+          _id: client._id,
+          userName: user?.name ?? user?.email ?? "Unknown",
+          currentTier: client.currentTier,
+          currentXP: client.currentXP,
+          goal: client.goal,
+          age: client.age,
+        };
+      }),
+    );
+
+    return enriched.sort((a, b) => b.currentXP - a.currentXP);
+  },
+});
+
 export const toggleNutritionistAccess = mutation({
   args: { clientId: v.id("clients") },
   handler: async (ctx, args) => {
