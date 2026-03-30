@@ -65,8 +65,10 @@ router.beforeEach(async (to) => {
     return '/sign-in'
   }
 
-  if (authStore.isSignedIn && to.path === '/sign-in') {
-    return '/onboarding'
+  if (authStore.isSignedIn && (to.path === '/sign-in' || to.path === '/')) {
+    await authStore.waitForUser()
+    const role = authStore.convexUser?.role
+    return role ? roleDashboard[role] : '/onboarding'
   }
 
   if (authStore.isSignedIn) {
