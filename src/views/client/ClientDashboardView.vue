@@ -166,7 +166,7 @@ const isLoading = computed(() => profile.value === null)
 </script>
 
 <template>
-  <div>
+  <div class="max-w-7xl mx-auto">
     <!-- Loading -->
     <div v-if="isLoading" class="flex items-center justify-center py-24">
       <div class="w-8 h-8 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
@@ -226,72 +226,72 @@ const isLoading = computed(() => profile.value === null)
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Left column: measurements + nutrition -->
         <div class="flex flex-col gap-6">
-        <!-- Recent measurements -->
-        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-          <h2 class="text-base font-semibold text-gray-900 mb-4">Recent Measurements</h2>
-          <div v-if="recentMeasurements.length === 0" class="text-sm text-gray-400">
-            No measurements logged yet.
-          </div>
-          <div v-else class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="text-xs text-gray-400 border-b border-gray-100">
-                  <th class="text-left pb-2 font-medium">Date</th>
-                  <th class="text-right pb-2 font-medium">Weight</th>
-                  <th class="text-right pb-2 font-medium">Body Fat</th>
-                  <th class="text-right pb-2 font-medium">Muscle</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-50">
-                <tr v-for="m in recentMeasurements" :key="m._id" class="text-gray-700">
-                  <td class="py-2.5 text-gray-500 text-xs">{{ formatDate(m.timestamp) }}</td>
-                  <td class="py-2.5 text-right font-medium">{{ m.weight }} kg</td>
-                  <td class="py-2.5 text-right">{{ m.bodyFat }}%</td>
-                  <td class="py-2.5 text-right">{{ m.muscleMass }} kg</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Nutrition Plan -->
-        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-          <h2 class="text-base font-semibold text-gray-900 mb-4">Nutrition Plan</h2>
-          <div v-if="nutritionPlan === null" class="text-sm text-gray-400">
-            No nutrition plan assigned yet.
-          </div>
-          <template v-else-if="nutritionPlan">
-            <div class="overflow-x-auto">
+          <!-- Recent measurements -->
+          <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+            <h2 class="text-base font-semibold text-gray-900 mb-4">Recent Measurements</h2>
+            <div v-if="recentMeasurements.length === 0" class="text-sm text-gray-400">
+              No measurements logged yet.
+            </div>
+            <div v-else class="overflow-x-auto">
               <table class="w-full text-sm">
                 <thead>
                   <tr class="text-xs text-gray-400 border-b border-gray-100">
-                    <th class="text-left pb-2 font-medium">Meal</th>
-                    <th class="text-right pb-2 font-medium">Calories</th>
-                    <th class="text-right pb-2 font-medium">Protein</th>
-                    <th class="text-right pb-2 font-medium">Carbs</th>
-                    <th class="text-right pb-2 font-medium">Fat</th>
+                    <th class="text-left pb-2 font-medium">Date</th>
+                    <th class="text-right pb-2 font-medium">Weight</th>
+                    <th class="text-right pb-2 font-medium">Body Fat</th>
+                    <th class="text-right pb-2 font-medium">Muscle</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
-                  <tr v-for="meal in nutritionPlan.meals" :key="meal.name" class="text-gray-700">
-                    <td class="py-2.5 font-medium">{{ meal.name }}</td>
-                    <td class="py-2.5 text-right">{{ meal.calories }} kcal</td>
-                    <td class="py-2.5 text-right">{{ meal.protein }}g</td>
-                    <td class="py-2.5 text-right">{{ meal.carbs }}g</td>
-                    <td class="py-2.5 text-right">{{ meal.fat }}g</td>
+                  <tr v-for="m in recentMeasurements" :key="m._id" class="text-gray-700">
+                    <td class="py-2.5 text-gray-500 text-xs">{{ formatDate(m.timestamp) }}</td>
+                    <td class="py-2.5 text-right font-medium">{{ m.weight }} kg</td>
+                    <td class="py-2.5 text-right">{{ m.bodyFat }}%</td>
+                    <td class="py-2.5 text-right">{{ m.muscleMass }} kg</td>
                   </tr>
                 </tbody>
               </table>
             </div>
-            <div class="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between gap-4">
-              <p v-if="nutritionPlan.notes" class="text-sm text-gray-500 flex-1">{{ nutritionPlan.notes }}</p>
-              <span v-else class="flex-1" />
-              <span class="text-sm font-semibold text-gray-700 whitespace-nowrap">
-                Total: {{ nutritionPlan.totalCalories.toLocaleString() }} kcal
-              </span>
+          </div>
+
+          <!-- Nutrition Plan -->
+          <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+            <h2 class="text-base font-semibold text-gray-900 mb-4">Nutrition Plan</h2>
+            <div v-if="nutritionPlan === null" class="text-sm text-gray-400">
+              No nutrition plan assigned yet.
             </div>
-          </template>
-        </div>
+            <template v-else-if="nutritionPlan">
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="text-xs text-gray-400 border-b border-gray-100">
+                      <th class="text-left pb-2 font-medium">Meal</th>
+                      <th class="text-right pb-2 font-medium">Calories</th>
+                      <th class="text-right pb-2 font-medium">Protein</th>
+                      <th class="text-right pb-2 font-medium">Carbs</th>
+                      <th class="text-right pb-2 font-medium">Fat</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-50">
+                    <tr v-for="meal in nutritionPlan.meals" :key="meal.name" class="text-gray-700">
+                      <td class="py-2.5 font-medium">{{ meal.name }}</td>
+                      <td class="py-2.5 text-right">{{ meal.calories }} kcal</td>
+                      <td class="py-2.5 text-right">{{ meal.protein }}g</td>
+                      <td class="py-2.5 text-right">{{ meal.carbs }}g</td>
+                      <td class="py-2.5 text-right">{{ meal.fat }}g</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between gap-4">
+                <p v-if="nutritionPlan.notes" class="text-sm text-gray-500 flex-1">{{ nutritionPlan.notes }}</p>
+                <span v-else class="flex-1" />
+                <span class="text-sm font-semibold text-gray-700 whitespace-nowrap">
+                  Total: {{ nutritionPlan.totalCalories.toLocaleString() }} kcal
+                </span>
+              </div>
+            </template>
+          </div>
         </div><!-- end left column -->
 
         <!-- Challenges -->

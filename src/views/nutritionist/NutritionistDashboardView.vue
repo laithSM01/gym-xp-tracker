@@ -32,27 +32,27 @@ const nutritionistName = computed(() => authStore.convexUser?.name ?? 'Nutrition
 const tierConfig: Record<Tier, { label: string; badge: string; bar: string }> = {
   beginner: {
     label: 'Beginner',
-    badge: 'bg-gray-100 text-gray-600 ring-gray-200',
+    badge: 'bg-gray-100 text-gray-700 ring-gray-200',
     bar: 'bg-gray-400',
   },
   novice: {
     label: 'Novice',
-    badge: 'bg-blue-100 text-blue-600 ring-blue-200',
+    badge: 'bg-blue-100 text-blue-700 ring-blue-200',
     bar: 'bg-blue-500',
   },
   intermediate: {
     label: 'Intermediate',
-    badge: 'bg-amber-100 text-amber-600 ring-amber-200',
+    badge: 'bg-amber-100 text-amber-700 ring-amber-200',
     bar: 'bg-amber-500',
   },
   advanced: {
     label: 'Advanced',
-    badge: 'bg-purple-100 text-purple-600 ring-purple-200',
+    badge: 'bg-purple-100 text-purple-700 ring-purple-200',
     bar: 'bg-purple-500',
   },
   elite: {
     label: 'Elite',
-    badge: 'bg-green-100 text-green-600 ring-green-200',
+    badge: 'bg-green-100 text-green-700 ring-green-200',
     bar: 'bg-green-500',
   },
 }
@@ -80,7 +80,7 @@ function xpProgress(xp: number, tier: Tier): number {
 </script>
 
 <template>
-  <div>
+  <div class="max-w-7xl mx-auto">
     <!-- Header -->
     <div class="flex items-start justify-between gap-4 mb-8">
       <div>
@@ -93,7 +93,7 @@ function xpProgress(xp: number, tier: Tier): number {
 
     <!-- Loading -->
     <div v-if="clients === null" class="flex items-center justify-center py-24">
-      <div class="w-8 h-8 border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin" />
+      <div class="w-8 h-8 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
     </div>
 
     <!-- Empty -->
