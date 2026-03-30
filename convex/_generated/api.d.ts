@@ -9,6 +9,7 @@
  */
 
 import type * as clients from "../clients.js";
+import type * as measurements from "../measurements.js";
 import type * as seed from "../seed.js";
 import type * as users from "../users.js";
 
@@ -20,6 +21,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   clients: typeof clients;
+  measurements: typeof measurements;
   seed: typeof seed;
   users: typeof users;
 }>;

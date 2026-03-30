@@ -1,5 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
 
 type Tier = "beginner" | "novice" | "intermediate" | "advanced" | "elite";
 
@@ -129,5 +130,109 @@ export const awardXP = mutation({
     });
 
     return { newXP, newTier };
+  },
+});
+
+export const getUnassignedClients = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+
+    const allUsers = await ctx.db.query("users").take(200);
+    const clientUsers = allUsers.filter((u) => u.role === "client");
+
+    const unassigned = [];
+    for (const user of clientUsers) {
+      const existing = await ctx.db
+        .query("clients")
+        .withIndex("by_userId", (q) => q.eq("userId", user._id))
+        .first();
+      if (!existing) {
+        unassigned.push({
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+        });
+      }
+    }
+
+    return unassigned;
+  },
+});
+
+export const createClient = mutation({
+  args: {
+    userId: v.id("users"),
+    age: v.number(),
+    goal: v.string(),
+    initialWeight: v.number(),
+    initialBodyFat: v.number(),
+    initialMuscleMass: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const trainer = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+    if (!trainer) throw new Error("Trainer not found");
+
+    const targetUser = await ctx.db.get(args.userId);
+    if (!targetUser) throw new Error("User not found");
+    if (targetUser.role !== "client") throw new Error("User is not a client");
+
+    // Create the client record
+    const clientId: Id<"clients"> = await ctx.db.insert("clients", {
+      userId: args.userId,
+      trainerId: trainer._id,
+      age: args.age,
+      goal: args.goal,
+      isEnrolled: true,
+      currentXP: 0,
+      currentTier: "beginner",
+      nutritionistAccess: false,
+      createdAt: Date.now(),
+    });
+
+    // Save baseline measurement (no XP — this is just intake data)
+    await ctx.db.insert("bodyMeasurements", {
+      clientId,
+      trainerId: trainer._id,
+      weight: args.initialWeight,
+      bodyFat: args.initialBodyFat,
+      muscleMass: args.initialMuscleMass,
+      timestamp: Date.now(),
+    });
+
+    return clientId;
+  },
+});
+
+export const toggleNutritionistAccess = mutation({
+  args: { clientId: v.id("clients") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const trainer = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+    if (!trainer) throw new Error("Trainer not found");
+
+    const client = await ctx.db.get(args.clientId);
+    if (!client) throw new Error("Client not found");
+    if (client.trainerId !== trainer._id) throw new Error("Not authorized");
+
+    await ctx.db.patch(args.clientId, {
+      nutritionistAccess: !client.nutritionistAccess,
+    });
   },
 });

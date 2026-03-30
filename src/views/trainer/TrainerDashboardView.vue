@@ -84,13 +84,24 @@ function xpProgress(xp: number, tier: Tier): number {
 <template>
   <div>
     <!-- Header -->
-    <div class="mb-8">
-      <h1 class="text-2xl font-bold text-gray-900">Welcome back, {{ trainerName }}</h1>
-      <p class="mt-1 text-gray-500">
-        You have
-        <span class="font-semibold text-gray-700">{{ enrolledCount }}</span>
-        active client{{ enrolledCount !== 1 ? 's' : '' }}
-      </p>
+    <div class="flex items-start justify-between gap-4 mb-8">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Welcome back, {{ trainerName }}</h1>
+        <p class="mt-1 text-gray-500">
+          You have
+          <span class="font-semibold text-gray-700">{{ enrolledCount }}</span>
+          active client{{ enrolledCount !== 1 ? 's' : '' }}
+        </p>
+      </div>
+      <RouterLink
+        to="/trainer/new-client"
+        class="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 transition-colors"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        New Client
+      </RouterLink>
     </div>
 
     <!-- Loading -->

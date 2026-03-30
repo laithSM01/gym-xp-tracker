@@ -30,6 +30,7 @@ export default defineSchema({
       v.literal("advanced"),
       v.literal("elite"),
     ),
+    nutritionistAccess: v.optional(v.boolean()),
     createdAt: v.number(),
   })
     .index("by_userId", ["userId"])
@@ -78,6 +79,17 @@ export default defineSchema({
     .index("by_clientId", ["clientId"])
     .index("by_trainerId", ["trainerId"])
     .index("by_clientId_and_status", ["clientId", "status"]),
+
+  bodyMeasurements: defineTable({
+    clientId: v.id("clients"),
+    trainerId: v.id("users"),
+    weight: v.number(),
+    bodyFat: v.number(),
+    muscleMass: v.number(),
+    notes: v.optional(v.string()),
+    timestamp: v.number(),
+  })
+    .index("by_clientId", ["clientId"]),
 
   nutritionPlans: defineTable({
     clientId: v.id("clients"),

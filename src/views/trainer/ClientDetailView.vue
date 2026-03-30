@@ -27,6 +27,15 @@ type XPLog = {
   createdAt: number
 }
 
+type Measurement = {
+  _id: string
+  weight: number
+  bodyFat: number
+  muscleMass: number
+  notes?: string
+  timestamp: number
+}
+
 type ClientDetail = {
   _id: string
   userName: string
@@ -36,14 +45,16 @@ type ClientDetail = {
   currentXP: number
   currentTier: Tier
   isEnrolled: boolean
+  nutritionistAccess?: boolean
   challenges: Challenge[]
   xpLogs: XPLog[]
 }
 
 const clientId = route.params.clientId as string
 const client = ref<ClientDetail | null>(null)
+const measurements = ref<Measurement[] | null>(null)
 
-const { unsubscribe } = convex.onUpdate(
+const { unsubscribe: unsubClient } = convex.onUpdate(
   api.clients.getClientById,
   { clientId: clientId as Id<'clients'> },
   (data) => {
@@ -51,7 +62,18 @@ const { unsubscribe } = convex.onUpdate(
   },
 )
 
-onUnmounted(() => unsubscribe())
+const { unsubscribe: unsubMeasurements } = convex.onUpdate(
+  api.measurements.getClientMeasurements,
+  { clientId: clientId as Id<'clients'> },
+  (data) => {
+    measurements.value = data as Measurement[] | null
+  },
+)
+
+onUnmounted(() => {
+  unsubClient()
+  unsubMeasurements()
+})
 
 // Award XP
 const xpAmount = ref(50)
@@ -74,13 +96,58 @@ async function awardXP() {
     xpReason.value = ''
     xpAmount.value = 50
     awardSuccess.value = true
-    setTimeout(() => {
-      awardSuccess.value = false
-    }, 3000)
+    setTimeout(() => { awardSuccess.value = false }, 3000)
   } catch (e: unknown) {
     awardError.value = e instanceof Error ? e.message : 'Failed to award XP'
   } finally {
     isAwarding.value = false
+  }
+}
+
+// Log Measurement
+const measWeight = ref('')
+const measBodyFat = ref('')
+const measMuscleMass = ref('')
+const measNotes = ref('')
+const isLogging = ref(false)
+const logError = ref('')
+const lastXPResult = ref<{ xpEarned: number; reasons: string[] } | null>(null)
+
+async function logMeasurement() {
+  if (!measWeight.value || !measBodyFat.value || !measMuscleMass.value) return
+  isLogging.value = true
+  logError.value = ''
+  lastXPResult.value = null
+  try {
+    const result = await convex.mutation(api.measurements.logMeasurement, {
+      clientId: clientId as Id<'clients'>,
+      weight: parseFloat(measWeight.value),
+      bodyFat: parseFloat(measBodyFat.value),
+      muscleMass: parseFloat(measMuscleMass.value),
+      notes: measNotes.value.trim() || undefined,
+    })
+    lastXPResult.value = result as { xpEarned: number; reasons: string[] }
+    measWeight.value = ''
+    measBodyFat.value = ''
+    measMuscleMass.value = ''
+    measNotes.value = ''
+  } catch (e: unknown) {
+    logError.value = e instanceof Error ? e.message : 'Failed to log measurement'
+  } finally {
+    isLogging.value = false
+  }
+}
+
+// Nutritionist access toggle
+const isTogglingAccess = ref(false)
+async function toggleNutritionistAccess() {
+  isTogglingAccess.value = true
+  try {
+    await convex.mutation(api.clients.toggleNutritionistAccess, {
+      clientId: clientId as Id<'clients'>,
+    })
+  } finally {
+    isTogglingAccess.value = false
   }
 }
 
@@ -177,12 +244,29 @@ const completedChallenges = computed(() => client.value?.challenges.filter((c) =
             <p v-if="client.userEmail" class="text-sm text-gray-400 mt-0.5">{{ client.userEmail }}</p>
             <p class="text-sm text-gray-500 mt-1">Age {{ client.age }} · {{ client.goal }}</p>
           </div>
-          <span
-            class="shrink-0 text-sm font-semibold px-3 py-1 rounded-full ring-1"
-            :class="tierConfig[client.currentTier].badge"
-          >
-            {{ tierConfig[client.currentTier].label }}
-          </span>
+          <div class="flex items-center gap-3 shrink-0">
+            <!-- Nutritionist access toggle -->
+            <button
+              :disabled="isTogglingAccess"
+              class="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors disabled:opacity-50"
+              :class="client.nutritionistAccess
+                ? 'bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100'
+                : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'"
+              @click="toggleNutritionistAccess"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              {{ client.nutritionistAccess ? 'Nutritionist: ON' : 'Nutritionist: OFF' }}
+            </button>
+            <span
+              class="text-sm font-semibold px-3 py-1 rounded-full ring-1"
+              :class="tierConfig[client.currentTier].badge"
+            >
+              {{ tierConfig[client.currentTier].label }}
+            </span>
+          </div>
         </div>
 
         <!-- XP bar -->
@@ -214,7 +298,7 @@ const completedChallenges = computed(() => client.value?.challenges.filter((c) =
       </div>
 
       <!-- Main grid -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <!-- Left: Award XP + XP History -->
         <div class="lg:col-span-1 flex flex-col gap-6">
           <!-- Award XP -->
@@ -331,6 +415,121 @@ const completedChallenges = computed(() => client.value?.challenges.filter((c) =
                 <span v-if="c.completedAt" class="text-xs text-gray-300">{{ formatDate(c.completedAt) }}</span>
               </li>
             </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Measurements section -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Log measurement form -->
+        <div class="lg:col-span-1">
+          <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+            <h2 class="text-base font-semibold text-gray-900 mb-4">Log Measurement</h2>
+            <div class="flex flex-col gap-3">
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="text-xs font-medium text-gray-500 mb-1 block">Weight (kg)</label>
+                  <input
+                    v-model="measWeight"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    placeholder="75.0"
+                  />
+                </div>
+                <div>
+                  <label class="text-xs font-medium text-gray-500 mb-1 block">Body Fat (%)</label>
+                  <input
+                    v-model="measBodyFat"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    placeholder="18.5"
+                  />
+                </div>
+              </div>
+              <div>
+                <label class="text-xs font-medium text-gray-500 mb-1 block">Muscle Mass (kg)</label>
+                <input
+                  v-model="measMuscleMass"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  placeholder="35.0"
+                />
+              </div>
+              <div>
+                <label class="text-xs font-medium text-gray-500 mb-1 block">Notes (optional)</label>
+                <input
+                  v-model="measNotes"
+                  type="text"
+                  class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  placeholder="Post-session notes…"
+                />
+              </div>
+              <button
+                :disabled="isLogging || !measWeight || !measBodyFat || !measMuscleMass"
+                class="w-full py-2 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                @click="logMeasurement"
+              >
+                {{ isLogging ? 'Saving…' : 'Save Measurement' }}
+              </button>
+
+              <!-- XP result -->
+              <div v-if="lastXPResult" class="rounded-xl bg-green-50 border border-green-100 p-3">
+                <p class="text-sm font-bold text-green-700">+{{ lastXPResult.xpEarned }} XP earned!</p>
+                <ul class="mt-1">
+                  <li
+                    v-for="(reason, i) in lastXPResult.reasons"
+                    :key="i"
+                    class="text-xs text-green-600"
+                  >
+                    {{ reason }}
+                  </li>
+                </ul>
+              </div>
+              <p v-if="logError" class="text-xs text-red-500 text-center">{{ logError }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Measurement history -->
+        <div class="lg:col-span-2">
+          <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+            <h2 class="text-base font-semibold text-gray-900 mb-4">Measurement History</h2>
+            <div v-if="!measurements || measurements.length === 0" class="text-sm text-gray-400">
+              No measurements logged yet.
+            </div>
+            <div v-else class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="text-xs text-gray-400 border-b border-gray-100">
+                    <th class="text-left pb-2 font-medium">Date</th>
+                    <th class="text-right pb-2 font-medium">Weight</th>
+                    <th class="text-right pb-2 font-medium">Body Fat</th>
+                    <th class="text-right pb-2 font-medium">Muscle</th>
+                    <th class="text-left pb-2 font-medium pl-4">Notes</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                  <tr
+                    v-for="m in measurements"
+                    :key="m._id"
+                    class="text-gray-700"
+                  >
+                    <td class="py-2.5 text-gray-500 text-xs">{{ formatDate(m.timestamp) }}</td>
+                    <td class="py-2.5 text-right font-medium">{{ m.weight }} kg</td>
+                    <td class="py-2.5 text-right">{{ m.bodyFat }}%</td>
+                    <td class="py-2.5 text-right">{{ m.muscleMass }} kg</td>
+                    <td class="py-2.5 pl-4 text-xs text-gray-400">{{ m.notes ?? '—' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
