@@ -41,25 +41,32 @@ export const logMeasurement = mutation({
       .order("desc")
       .first();
 
-    // Attendance bonus always applies
-    let xpEarned = 20;
-    const reasons: string[] = ["Session attendance +20 XP"];
+    let xpEarned = 0;
+    const reasons: string[] = [];
 
     if (lastMeasurement) {
-      // Body fat decreased → +50 XP per 0.1% decrease
+      // Body fat: -50 XP per 0.1% increase, +50 XP per 0.1% decrease
       const fatDiff = lastMeasurement.bodyFat - args.bodyFat;
-      if (fatDiff > 0) {
+      if (fatDiff !== 0) {
         const fatXP = Math.round((fatDiff / 0.1) * 50);
         xpEarned += fatXP;
-        reasons.push(`Body fat ↓${fatDiff.toFixed(1)}% +${fatXP} XP`);
+        reasons.push(
+          fatXP >= 0
+            ? `Body fat ↓${fatDiff.toFixed(1)}% +${fatXP} XP`
+            : `Body fat ↑${(-fatDiff).toFixed(1)}% ${fatXP} XP`,
+        );
       }
 
-      // Muscle mass increased → +40 XP per 0.1kg increase
+      // Muscle mass: -40 XP per 0.1kg decrease, +40 XP per 0.1kg increase
       const muscleDiff = args.muscleMass - lastMeasurement.muscleMass;
-      if (muscleDiff > 0) {
+      if (muscleDiff !== 0) {
         const muscleXP = Math.round((muscleDiff / 0.1) * 40);
         xpEarned += muscleXP;
-        reasons.push(`Muscle ↑${muscleDiff.toFixed(1)}kg +${muscleXP} XP`);
+        reasons.push(
+          muscleXP >= 0
+            ? `Muscle ↑${muscleDiff.toFixed(1)}kg +${muscleXP} XP`
+            : `Muscle ↓${(-muscleDiff).toFixed(1)}kg ${muscleXP} XP`,
+        );
       }
     }
 
@@ -74,8 +81,8 @@ export const logMeasurement = mutation({
       timestamp: Date.now(),
     });
 
-    // Update client XP and tier
-    const newXP = client.currentXP + xpEarned;
+    // Total XP floors at 0
+    const newXP = Math.max(0, client.currentXP + xpEarned);
     const newTier = tierFromXP(newXP);
     await ctx.db.patch(args.clientId, { currentXP: newXP, currentTier: newTier });
 
