@@ -62,6 +62,11 @@ export const upsertNutritionPlan = mutation({
     if (nutritionist.role !== "nutritionist")
       throw new Error("Only nutritionists can save nutrition plans");
 
+    const client = await ctx.db.get(args.clientId);
+    if (!client) throw new Error("Client not found");
+    if (!client.nutritionistAccess)
+      throw new Error("Nutritionist access not granted for this client");
+
     const existing = await ctx.db
       .query("nutritionPlans")
       .withIndex("by_clientId", (q) => q.eq("clientId", args.clientId))

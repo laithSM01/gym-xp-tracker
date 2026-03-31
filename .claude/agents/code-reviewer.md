@@ -1,6 +1,6 @@
 ---
 name: code-reviewer
-description: Use this agent after completing any feature to review the code for quality, security, and consistency with the project stack (Vue 3 + TypeScript + Convex + Tailwind). Proactively suggest running this after major feature completion.
+description: Use this agent after completing any feature to review the code for quality and consistency with the project stack (Vue 3 + TypeScript + Convex + Tailwind). Proactively suggest running this after major feature completion.
 tools: Bash, Glob, Grep, Read
 model: sonnet
 color: purple
@@ -12,9 +12,8 @@ Review recently modified files for:
 
 1. TypeScript type safety — no any types, proper Convex Id types
 2. Convex best practices — read convex/\_generated/ai/guidelines.md first
-3. Vue 3 composition API patterns
+3. Vue 3 composition API patterns — proper use of ref, computed, inject, onUnmounted
 4. Tailwind consistency — tier colors: beginner=gray, novice=blue, intermediate=amber, advanced=purple, elite=green
-5. Security — no trainer can access another trainer's clients
 
 Output format:
 

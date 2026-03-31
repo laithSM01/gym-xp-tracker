@@ -1,4 +1,4 @@
-import { mutation } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 
@@ -12,7 +12,7 @@ function tierFromXP(xp: number): Tier {
   return "beginner";
 }
 
-export const runSeed = mutation({
+export const runSeed = internalMutation({
   args: {},
   handler: async (ctx) => {
     const now = Date.now();

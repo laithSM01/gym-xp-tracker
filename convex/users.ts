@@ -35,6 +35,7 @@ export const upsertUser = mutation({
       .unique();
 
     if (existing) {
+      // Role is set once at registration and never changed via the client.
       await ctx.db.patch(existing._id, {
         name: identity.name ?? undefined,
         email: identity.email ?? undefined,
