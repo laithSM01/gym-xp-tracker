@@ -1,4 +1,7 @@
-# vue-nuxt-architecture
+---
+name: vue-nuxt-architecture
+description: 'Team conventions for Nuxt 3 + Vue 3 projects, composables, Convex usage, TypeScript, and testing rules'
+---
 
 ## Core Principles
 

@@ -50,3 +50,4 @@ Environment variables required: `VITE_CONVEX_URL`, `VITE_CLERK_PUBLISHABLE_KEY`,
 ## Skills
 
 - vue-nuxt-architecture: enforces component architecture, composables pattern, and testing conventions
+- vitest: Vitest testing framework patterns and best practices
