@@ -1,183 +1,27 @@
 <script setup lang="ts">
-import { ref, inject, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import type { ConvexClient } from 'convex/browser'
-import { api } from '@convex/_generated/api'
-import type { Id } from '@convex/_generated/dataModel'
+import { useClientNutrition } from '@/composables/useClientNutrition'
+import { tierConfig, formatDate } from '@/utils/xp'
 
 const route = useRoute()
 const router = useRouter()
-const convex = inject<ConvexClient>('convex')!
-
 const clientId = route.params.clientId as string
 
-type Tier = 'beginner' | 'novice' | 'intermediate' | 'advanced' | 'elite'
-
-type ClientDetail = {
-  _id: string
-  userName: string
-  userEmail?: string
-  age: number
-  goal: string
-  currentXP: number
-  currentTier: Tier
-}
-
-type Measurement = {
-  _id: string
-  weight: number
-  bodyFat: number
-  muscleMass: number
-  notes?: string
-  timestamp: number
-}
-
-type Meal = {
-  name: string
-  calories: number
-  protein: number
-  carbs: number
-  fat: number
-}
-
-type NutritionPlan = {
-  _id: string
-  meals: Meal[]
-  totalCalories: number
-  notes?: string
-}
-
-const client = ref<ClientDetail | null>(null)
-const measurements = ref<Measurement[] | null>(null)
-const existingPlan = ref<NutritionPlan | null | undefined>(undefined)
-
-const { unsubscribe: unsubClient } = convex.onUpdate(
-  api.clients.getClientById,
-  { clientId: clientId as Id<'clients'> },
-  (data) => {
-    client.value = data as ClientDetail | null
-  },
-)
-
-const { unsubscribe: unsubMeasurements } = convex.onUpdate(
-  api.measurements.getClientMeasurements,
-  { clientId: clientId as Id<'clients'> },
-  (data) => {
-    measurements.value = data as Measurement[] | null
-  },
-)
-
-const { unsubscribe: unsubPlan } = convex.onUpdate(
-  api.nutritionPlans.getNutritionPlan,
-  { clientId: clientId as Id<'clients'> },
-  (data) => {
-    existingPlan.value = data as NutritionPlan | null
-    if (data) {
-      const plan = data as NutritionPlan
-      meals.value = plan.meals.map((m) => ({ ...m }))
-      totalCalories.value = plan.totalCalories
-      notes.value = plan.notes ?? ''
-    }
-  },
-)
-
-onUnmounted(() => {
-  unsubClient()
-  unsubMeasurements()
-  unsubPlan()
-})
-
-// Form state
-const meals = ref<Meal[]>([
-  { name: '', calories: 0, protein: 0, carbs: 0, fat: 0 },
-])
-const totalCalories = ref(0)
-const notes = ref('')
-const isSaving = ref(false)
-const saveError = ref('')
-const saveSuccess = ref(false)
-
-function addMeal() {
-  meals.value.push({ name: '', calories: 0, protein: 0, carbs: 0, fat: 0 })
-}
-
-function removeMeal(index: number) {
-  meals.value.splice(index, 1)
-}
-
-const computedTotalCalories = computed(() =>
-  meals.value.reduce((sum, m) => sum + (m.calories || 0), 0),
-)
-
-async function savePlan() {
-  if (!meals.value.length) return
-  isSaving.value = true
-  saveError.value = ''
-  saveSuccess.value = false
-  try {
-    await convex.mutation(api.nutritionPlans.upsertNutritionPlan, {
-      clientId: clientId as Id<'clients'>,
-      meals: meals.value.map((m) => ({
-        name: m.name,
-        calories: m.calories,
-        protein: m.protein,
-        carbs: m.carbs,
-        fat: m.fat,
-      })),
-      totalCalories: totalCalories.value || computedTotalCalories.value,
-      notes: notes.value.trim() || undefined,
-    })
-    saveSuccess.value = true
-    setTimeout(() => {
-      saveSuccess.value = false
-    }, 3000)
-  } catch (e: unknown) {
-    saveError.value = e instanceof Error ? e.message : 'Failed to save plan'
-  } finally {
-    isSaving.value = false
-  }
-}
-
-// Tier config
-const tierConfig: Record<Tier, { label: string; badge: string; bar: string }> = {
-  beginner: {
-    label: 'Beginner',
-    badge: 'bg-gray-100 text-gray-700 ring-gray-200',
-    bar: 'bg-gray-400',
-  },
-  novice: {
-    label: 'Novice',
-    badge: 'bg-blue-100 text-blue-700 ring-blue-200',
-    bar: 'bg-blue-500',
-  },
-  intermediate: {
-    label: 'Intermediate',
-    badge: 'bg-amber-100 text-amber-700 ring-amber-200',
-    bar: 'bg-amber-500',
-  },
-  advanced: {
-    label: 'Advanced',
-    badge: 'bg-purple-100 text-purple-700 ring-purple-200',
-    bar: 'bg-purple-500',
-  },
-  elite: {
-    label: 'Elite',
-    badge: 'bg-green-100 text-green-700 ring-green-200',
-    bar: 'bg-green-500',
-  },
-}
-
-const latestMeasurement = computed(() =>
-  measurements.value && measurements.value.length > 0 ? measurements.value[0] : null,
-)
-
-function formatDate(ts: number): string {
-  return new Date(ts).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
-}
+const { data, actions } = useClientNutrition(clientId)
+const {
+  client,
+  measurements,
+  existingPlan,
+  latestMeasurement,
+  meals,
+  totalCalories,
+  notes,
+  computedTotalCalories,
+  isSaving,
+  saveError,
+  saveSuccess,
+} = data
+const { addMeal, removeMeal, savePlan } = actions
 </script>
 
 <template>

@@ -1,82 +1,10 @@
 <script setup lang="ts">
-import { ref, inject, onUnmounted, computed } from 'vue'
 import { RouterLink } from 'vue-router'
-import type { ConvexClient } from 'convex/browser'
-import { api } from '@convex/_generated/api'
-import { useAuthStore } from '@/stores/auth'
+import { useNutritionistDashboard } from '@/composables/useNutritionistDashboard'
+import { tierConfig, tierMax, xpProgress } from '@/utils/xp'
 
-const convex = inject<ConvexClient>('convex')!
-const authStore = useAuthStore()
-
-type Tier = 'beginner' | 'novice' | 'intermediate' | 'advanced' | 'elite'
-
-type AccessibleClient = {
-  _id: string
-  userName: string
-  currentTier: Tier
-  currentXP: number
-  goal: string
-  age: number
-}
-
-const clients = ref<AccessibleClient[] | null>(null)
-
-const { unsubscribe } = convex.onUpdate(api.clients.getAccessibleClients, {}, (data) => {
-  clients.value = data as AccessibleClient[] | null
-})
-
-onUnmounted(() => unsubscribe())
-
-const nutritionistName = computed(() => authStore.convexUser?.name ?? 'Nutritionist')
-
-const tierConfig: Record<Tier, { label: string; badge: string; bar: string }> = {
-  beginner: {
-    label: 'Beginner',
-    badge: 'bg-gray-100 text-gray-700 ring-gray-200',
-    bar: 'bg-gray-400',
-  },
-  novice: {
-    label: 'Novice',
-    badge: 'bg-blue-100 text-blue-700 ring-blue-200',
-    bar: 'bg-blue-500',
-  },
-  intermediate: {
-    label: 'Intermediate',
-    badge: 'bg-amber-100 text-amber-700 ring-amber-200',
-    bar: 'bg-amber-500',
-  },
-  advanced: {
-    label: 'Advanced',
-    badge: 'bg-purple-100 text-purple-700 ring-purple-200',
-    bar: 'bg-purple-500',
-  },
-  elite: {
-    label: 'Elite',
-    badge: 'bg-green-100 text-green-700 ring-green-200',
-    bar: 'bg-green-500',
-  },
-}
-
-const tierMax: Record<Tier, number> = {
-  beginner: 500,
-  novice: 1000,
-  intermediate: 2000,
-  advanced: 3000,
-  elite: 3000,
-}
-
-const tierMin: Record<Tier, number> = {
-  beginner: 0,
-  novice: 500,
-  intermediate: 1000,
-  advanced: 2000,
-  elite: 3000,
-}
-
-function xpProgress(xp: number, tier: Tier): number {
-  if (tier === 'elite') return 100
-  return Math.min(100, Math.round(((xp - tierMin[tier]) / (tierMax[tier] - tierMin[tier])) * 100))
-}
+const { data } = useNutritionistDashboard()
+const { clients, nutritionistName } = data
 </script>
 
 <template>

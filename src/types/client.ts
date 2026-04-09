@@ -49,6 +49,15 @@ export type NutritionPlan = {
   notes?: string
 }
 
+export type AccessibleClient = {
+  _id: string
+  userName: string
+  currentTier: Tier
+  currentXP: number
+  goal: string
+  age: number
+}
+
 export type XPLog = {
   _id: string
   amount: number
