@@ -1,87 +1,24 @@
 <script setup lang="ts">
-import { ref, inject, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import type { ConvexClient } from 'convex/browser'
-import { api } from '@convex/_generated/api'
-import type { Id } from '@convex/_generated/dataModel'
+import { useNewClient } from '@/composables/useNewClient'
 
 const router = useRouter()
-const convex = inject<ConvexClient>('convex')!
+const { data, actions } = useNewClient()
 
-type UnassignedUser = {
-  _id: string
-  name?: string
-  email?: string
-}
-
-const unassignedClients = ref<UnassignedUser[] | null>(null)
-const { unsubscribe } = convex.onUpdate(api.clients.getUnassignedClients, {}, (data) => {
-  unassignedClients.value = data as UnassignedUser[] | null
-})
-onUnmounted(() => unsubscribe())
-
-// Step 1: select a user
-const selectedUserId = ref<string>('')
-const search = ref('')
-
-const filteredClients = computed(() => {
-  const list = unassignedClients.value ?? []
-  const q = search.value.trim().toLowerCase()
-  if (!q) return list
-  return list.filter((u) => {
-    const name = (u.name ?? '').toLowerCase()
-    const email = (u.email ?? '').toLowerCase()
-    return name.includes(q) || email.includes(q)
-  })
-})
-
-function displayName(u: UnassignedUser) {
-  return u.name ?? u.email ?? u._id
-}
-
-// Step 2: intake form
-const age = ref('')
-const goal = ref('')
-const weight = ref('')
-const bodyFat = ref('')
-const muscleMass = ref('')
-
-const isSubmitting = ref(false)
-const submitError = ref('')
-
-const isFormValid = computed(() =>
-  selectedUserId.value &&
-  age.value &&
-  parseInt(age.value) > 0 &&
-  goal.value.trim() &&
-  weight.value &&
-  parseFloat(weight.value) > 0 &&
-  bodyFat.value &&
-  parseFloat(bodyFat.value) > 0 &&
-  muscleMass.value &&
-  parseFloat(muscleMass.value) > 0,
-)
-
-async function submit() {
-  if (!isFormValid.value) return
-  isSubmitting.value = true
-  submitError.value = ''
-  try {
-    const clientId = await convex.mutation(api.clients.createClient, {
-      userId: selectedUserId.value as Id<'users'>,
-      age: parseInt(age.value),
-      goal: goal.value.trim(),
-      initialWeight: parseFloat(weight.value),
-      initialBodyFat: parseFloat(bodyFat.value),
-      initialMuscleMass: parseFloat(muscleMass.value),
-    })
-    router.push(`/trainer/client/${clientId as Id<'clients'>}`)
-  } catch (e: unknown) {
-    submitError.value = e instanceof Error ? e.message : 'Failed to create client'
-  } finally {
-    isSubmitting.value = false
-  }
-}
+const {
+  unassignedClients,
+  filteredClients,
+  selectedUserId,
+  search,
+  age,
+  goal,
+  weight,
+  bodyFat,
+  muscleMass,
+  isFormValid,
+  isSubmitting,
+  submitError,
+} = data
 </script>
 
 <template>
@@ -101,7 +38,7 @@ async function submit() {
       <h1 class="text-xl font-bold text-gray-900 mb-1">New Client Intake</h1>
       <p class="text-sm text-gray-400 mb-6">Select an existing client account and fill in their intake details.</p>
 
-      <form class="flex flex-col gap-5" @submit.prevent="submit">
+      <form class="flex flex-col gap-5" @submit.prevent="actions.submit">
         <!-- Step 1: select client -->
         <div>
           <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Select Client</h2>
@@ -142,7 +79,7 @@ async function submit() {
                   <div v-if="selectedUserId === u._id" class="w-1.5 h-1.5 rounded-full bg-white" />
                 </div>
                 <div class="min-w-0">
-                  <p class="text-sm font-medium text-gray-800 truncate">{{ displayName(u) }}</p>
+                  <p class="text-sm font-medium text-gray-800 truncate">{{ actions.displayName(u) }}</p>
                   <p v-if="u.name && u.email" class="text-xs text-gray-400 truncate">{{ u.email }}</p>
                 </div>
               </button>

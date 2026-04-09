@@ -68,6 +68,12 @@ export type AccessibleClient = {
   age: number
 }
 
+export type UnassignedUser = {
+  _id: string
+  name?: string
+  email?: string
+}
+
 export type XPLog = {
   _id: string
   amount: number
