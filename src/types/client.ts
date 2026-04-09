@@ -48,3 +48,24 @@ export type NutritionPlan = {
   totalCalories: number
   notes?: string
 }
+
+export type XPLog = {
+  _id: string
+  amount: number
+  reason: string
+  createdAt: number
+}
+
+export type ClientDetail = {
+  _id: string
+  userName: string
+  userEmail?: string
+  age: number
+  goal: string
+  currentXP: number
+  currentTier: Tier
+  isEnrolled: boolean
+  nutritionistAccess?: boolean
+  challenges: Challenge[]
+  xpLogs: XPLog[]
+}

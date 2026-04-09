@@ -1,14 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { effectScope, nextTick } from 'vue'
 import type { Profile, Measurement, Challenges, NutritionPlan } from '@/types/client'
-import {
-  xpProgress,
-  formatDate,
-  tierConfig,
-  tierMin,
-  tierMax,
-  useClientDashboard,
-} from './useClientDashboard'
+import { xpProgress, formatDate, tierConfig, tierMin, tierMax } from '@/utils/xp'
+import { useClientDashboard } from './useClientDashboard'
 
 // ---------------------------------------------------------------------------
 // Hoisted mock helpers — created before any imports resolve

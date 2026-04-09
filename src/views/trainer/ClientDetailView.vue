@@ -1,220 +1,62 @@
 <script setup lang="ts">
-import { ref, inject, onUnmounted, computed } from 'vue'
+import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import type { ConvexClient } from 'convex/browser'
-import { api } from '@convex/_generated/api'
-import type { Id } from '@convex/_generated/dataModel'
+import { useClientDetail } from '@/composables/useClientDetail'
+import { tierConfig, tierMin, tierMax, xpProgress, formatDate } from '@/utils/xp'
 
 const route = useRoute()
 const router = useRouter()
-const convex = inject<ConvexClient>('convex')!
-
-type Tier = 'beginner' | 'novice' | 'intermediate' | 'advanced' | 'elite'
-
-type Challenge = {
-  _id: string
-  title: string
-  description: string
-  xpReward: number
-  status: 'pending' | 'completed'
-  completedAt?: number
-}
-
-type XPLog = {
-  _id: string
-  amount: number
-  reason: string
-  createdAt: number
-}
-
-type Measurement = {
-  _id: string
-  weight: number
-  bodyFat: number
-  muscleMass: number
-  notes?: string
-  timestamp: number
-}
-
-type ClientDetail = {
-  _id: string
-  userName: string
-  userEmail?: string
-  age: number
-  goal: string
-  currentXP: number
-  currentTier: Tier
-  isEnrolled: boolean
-  nutritionistAccess?: boolean
-  challenges: Challenge[]
-  xpLogs: XPLog[]
-}
-
 const clientId = route.params.clientId as string
-const client = ref<ClientDetail | null>(null)
-const measurements = ref<Measurement[] | null>(null)
 
-const { unsubscribe: unsubClient } = convex.onUpdate(
-  api.clients.getClientById,
-  { clientId: clientId as Id<'clients'> },
-  (data) => {
-    client.value = data as ClientDetail | null
-  },
-)
+const { data, actions } = useClientDetail(clientId)
+const {
+  client,
+  measurements,
+  activeChallenges,
+  completedChallenges,
+  isAwarding,
+  awardError,
+  awardSuccess,
+  isLogging,
+  logError,
+  lastXPResult,
+  isTogglingAccess,
+} = data
 
-const { unsubscribe: unsubMeasurements } = convex.onUpdate(
-  api.measurements.getClientMeasurements,
-  { clientId: clientId as Id<'clients'> },
-  (data) => {
-    measurements.value = data as Measurement[] | null
-  },
-)
-
-onUnmounted(() => {
-  unsubClient()
-  unsubMeasurements()
-})
-
-// Award XP
+// Award XP form state
 const xpAmount = ref(50)
 const xpReason = ref('')
-const isAwarding = ref(false)
-const awardError = ref('')
-const awardSuccess = ref(false)
 
-async function awardXP() {
+async function handleAwardXP() {
   if (!xpAmount.value || xpAmount.value <= 0 || !xpReason.value.trim()) return
-  isAwarding.value = true
-  awardError.value = ''
-  awardSuccess.value = false
-  try {
-    await convex.mutation(api.clients.awardXP, {
-      clientId: clientId as Id<'clients'>,
-      amount: xpAmount.value,
-      reason: xpReason.value.trim(),
-    })
+  const ok = await actions.awardXP(xpAmount.value, xpReason.value)
+  if (ok) {
     xpReason.value = ''
     xpAmount.value = 50
-    awardSuccess.value = true
-    setTimeout(() => { awardSuccess.value = false }, 3000)
-  } catch (e: unknown) {
-    awardError.value = e instanceof Error ? e.message : 'Failed to award XP'
-  } finally {
-    isAwarding.value = false
   }
 }
 
-// Log Measurement
+// Log Measurement form state
 const measWeight = ref('')
 const measBodyFat = ref('')
 const measMuscleMass = ref('')
 const measNotes = ref('')
-const isLogging = ref(false)
-const logError = ref('')
-const lastXPResult = ref<{ xpEarned: number; reasons: string[] } | null>(null)
 
-async function logMeasurement() {
+async function handleLogMeasurement() {
   if (!measWeight.value || !measBodyFat.value || !measMuscleMass.value) return
-  isLogging.value = true
-  logError.value = ''
-  lastXPResult.value = null
-  try {
-    const result = await convex.mutation(api.measurements.logMeasurement, {
-      clientId: clientId as Id<'clients'>,
-      weight: parseFloat(measWeight.value),
-      bodyFat: parseFloat(measBodyFat.value),
-      muscleMass: parseFloat(measMuscleMass.value),
-      notes: measNotes.value.trim() || undefined,
-    })
-    lastXPResult.value = result as { xpEarned: number; reasons: string[] }
+  const ok = await actions.logMeasurement({
+    weight: parseFloat(measWeight.value),
+    bodyFat: parseFloat(measBodyFat.value),
+    muscleMass: parseFloat(measMuscleMass.value),
+    notes: measNotes.value.trim() || undefined,
+  })
+  if (ok) {
     measWeight.value = ''
     measBodyFat.value = ''
     measMuscleMass.value = ''
     measNotes.value = ''
-  } catch (e: unknown) {
-    logError.value = e instanceof Error ? e.message : 'Failed to log measurement'
-  } finally {
-    isLogging.value = false
   }
 }
-
-// Nutritionist access toggle
-const isTogglingAccess = ref(false)
-async function toggleNutritionistAccess() {
-  isTogglingAccess.value = true
-  try {
-    await convex.mutation(api.clients.toggleNutritionistAccess, {
-      clientId: clientId as Id<'clients'>,
-    })
-  } finally {
-    isTogglingAccess.value = false
-  }
-}
-
-// Tier config
-const tierConfig: Record<Tier, { label: string; badge: string; bar: string; next?: string }> = {
-  beginner: {
-    label: 'Beginner',
-    badge: 'bg-gray-100 text-gray-700 ring-gray-200',
-    bar: 'bg-gray-400',
-    next: 'Novice at 500 XP',
-  },
-  novice: {
-    label: 'Novice',
-    badge: 'bg-blue-100 text-blue-700 ring-blue-200',
-    bar: 'bg-blue-500',
-    next: 'Intermediate at 1,000 XP',
-  },
-  intermediate: {
-    label: 'Intermediate',
-    badge: 'bg-amber-100 text-amber-700 ring-amber-200',
-    bar: 'bg-amber-500',
-    next: 'Advanced at 2,000 XP',
-  },
-  advanced: {
-    label: 'Advanced',
-    badge: 'bg-purple-100 text-purple-700 ring-purple-200',
-    bar: 'bg-purple-500',
-    next: 'Elite at 3,000 XP',
-  },
-  elite: {
-    label: 'Elite',
-    badge: 'bg-green-100 text-green-700 ring-green-200',
-    bar: 'bg-green-500',
-  },
-}
-
-const tierMin: Record<Tier, number> = {
-  beginner: 0,
-  novice: 500,
-  intermediate: 1000,
-  advanced: 2000,
-  elite: 3000,
-}
-
-const tierMax: Record<Tier, number> = {
-  beginner: 500,
-  novice: 1000,
-  intermediate: 2000,
-  advanced: 3000,
-  elite: 3000,
-}
-
-function xpProgress(xp: number, tier: Tier): number {
-  if (tier === 'elite') return 100
-  return Math.min(100, Math.round(((xp - tierMin[tier]) / (tierMax[tier] - tierMin[tier])) * 100))
-}
-
-function formatDate(ts: number): string {
-  return new Date(ts).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
-}
-
-const activeChallenges = computed(() => client.value?.challenges.filter((c) => c.status === 'pending') ?? [])
-const completedChallenges = computed(() => client.value?.challenges.filter((c) => c.status === 'completed') ?? [])
 </script>
 
 <template>
@@ -252,7 +94,7 @@ const completedChallenges = computed(() => client.value?.challenges.filter((c) =
               :class="client.nutritionistAccess
                 ? 'bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100'
                 : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'"
-              @click="toggleNutritionistAccess"
+              @click="actions.toggleNutritionistAccess()"
             >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -323,13 +165,13 @@ const completedChallenges = computed(() => client.value?.challenges.filter((c) =
                   type="text"
                   class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
                   placeholder="e.g. Completed weekly challenge"
-                  @keydown.enter="awardXP"
+                  @keydown.enter="handleAwardXP"
                 />
               </div>
               <button
                 :disabled="isAwarding || !xpAmount || xpAmount <= 0 || !xpReason.trim()"
                 class="w-full px-4 py-2 rounded-xl text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                @click="awardXP"
+                @click="handleAwardXP"
               >
                 {{ isAwarding ? 'Awarding…' : `+ Award ${xpAmount} XP` }}
               </button>
@@ -452,7 +294,7 @@ const completedChallenges = computed(() => client.value?.challenges.filter((c) =
               <button
                 :disabled="isLogging || !measWeight || !measBodyFat || !measMuscleMass"
                 class="w-full px-4 py-2 rounded-xl text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                @click="logMeasurement"
+                @click="handleLogMeasurement"
               >
                 {{ isLogging ? 'Saving…' : 'Save Measurement' }}
               </button>
