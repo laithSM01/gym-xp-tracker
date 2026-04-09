@@ -49,6 +49,16 @@ export type NutritionPlan = {
   notes?: string
 }
 
+export type TrainerClient = {
+  _id: string
+  userName: string
+  currentTier: Tier
+  currentXP: number
+  goal: string
+  isEnrolled: boolean
+  age: number
+}
+
 export type AccessibleClient = {
   _id: string
   userName: string
