@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useClientDetail } from '@/composables/useClientDetail'
+import { useClientAISuggestions } from '@/composables/useClientAISuggestions'
 import { tierConfig, tierMin, tierMax, xpProgress, formatDate } from '@/utils/xp'
 
 const route = useRoute()
@@ -56,6 +57,25 @@ async function handleLogMeasurement() {
     measMuscleMass.value = ''
     measNotes.value = ''
   }
+}
+
+// AI Suggestions
+const { suggestions, isLoading: isAILoading, error: aiError, fetchSuggestions } = useClientAISuggestions()
+
+const aiPayload = computed(() => ({
+  age: client.value!.age,
+  goal: client.value!.goal,
+  currentXP: client.value!.currentXP,
+  currentTier: client.value!.currentTier,
+  measurements: measurements.value ?? [],
+  xpLogs: client.value!.xpLogs,
+  currentExercises: [] as string[],
+  completedChallenges: completedChallenges.value.length,
+}))
+
+function handleGetSuggestions() {
+  if (!client.value) return
+  fetchSuggestions(aiPayload.value)
 }
 </script>
 
@@ -373,6 +393,42 @@ async function handleLogMeasurement() {
               </li>
             </ul>
           </div>
+        </div>
+      </div>
+      <!-- AI Workout Suggestions -->
+      <div class="mt-6">
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-base font-semibold text-gray-900">AI Workout Suggestions</h2>
+              <p class="text-xs text-gray-400 mt-0.5">Generated based on client's XP, tier, measurements, and goals</p>
+            </div>
+            <button
+              :disabled="isAILoading"
+              class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
+              @click="handleGetSuggestions"
+            >
+              <svg v-if="isAILoading" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              {{ isAILoading ? 'Generating…' : 'Get Suggestions' }}
+            </button>
+          </div>
+
+          <p v-if="aiError" class="text-xs text-red-500">{{ aiError }}</p>
+
+          <div v-if="suggestions" class="rounded-xl bg-violet-50 border border-violet-100 p-4">
+            <p class="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{{ suggestions }}</p>
+          </div>
+
+          <p v-else-if="!isAILoading && !aiError" class="text-sm text-gray-400">
+            Click "Get Suggestions" to generate a personalised workout plan for this client.
+          </p>
         </div>
       </div>
     </template>
