@@ -81,6 +81,22 @@ export type XPLog = {
   createdAt: number
 }
 
+export type ProgramExercise = {
+  name: string
+  sets: number
+  reps: number
+  notes?: string
+}
+
+export type Program = {
+  _id: string
+  title: string
+  startDate: number
+  endDate: number
+  exercises: ProgramExercise[]
+  status: 'active' | 'completed'
+}
+
 export type ClientDetail = {
   _id: string
   userName: string

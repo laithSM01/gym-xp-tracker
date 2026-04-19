@@ -25,6 +25,10 @@ const {
   isAddingChallenge,
   addChallengeError,
   addChallengeSuccess,
+  isCreatingProgram,
+  createProgramError,
+  createProgramSuccess,
+  activePrograms,
 } = data
 
 // Award XP form state
@@ -98,6 +102,11 @@ const aiPayload = computed(() => ({
 function handleGetSuggestions() {
   if (!client.value) return
   fetchSuggestions(aiPayload.value)
+}
+
+async function handleSaveProgram() {
+  if (!suggestions.value) return
+  await actions.createProgram(suggestions.value.title, suggestions.value.exercises)
 }
 </script>
 
@@ -464,6 +473,46 @@ function handleGetSuggestions() {
           </div>
         </div>
       </div>
+      <!-- Programs -->
+      <div class="mt-6">
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+          <h2 class="text-base font-semibold text-gray-900 mb-4">Active Programs</h2>
+          <div v-if="activePrograms.length === 0" class="text-sm text-gray-400">
+            No active programs. Generate and approve one from the AI suggestions below.
+          </div>
+          <div v-else class="flex flex-col gap-5">
+            <div
+              v-for="program in activePrograms"
+              :key="program._id"
+              class="rounded-xl border border-gray-100 overflow-hidden"
+            >
+              <div class="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
+                <span class="text-sm font-semibold text-gray-800">{{ program.title }}</span>
+                <span class="text-xs text-gray-400">
+                  {{ new Date(program.startDate).toLocaleDateString() }} –
+                  {{ new Date(program.endDate).toLocaleDateString() }}
+                </span>
+              </div>
+              <div class="divide-y divide-gray-50">
+                <div
+                  v-for="(exercise, i) in program.exercises"
+                  :key="i"
+                  class="flex items-start gap-3 px-4 py-3"
+                >
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-800">{{ exercise.name }}</p>
+                    <p v-if="exercise.notes" class="text-xs text-gray-400 mt-0.5">{{ exercise.notes }}</p>
+                  </div>
+                  <span class="shrink-0 text-xs font-semibold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">
+                    {{ exercise.sets }} × {{ exercise.reps }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- AI Workout Suggestions -->
       <div class="mt-6">
         <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
@@ -491,8 +540,40 @@ function handleGetSuggestions() {
 
           <p v-if="aiError" class="text-xs text-red-500">{{ aiError }}</p>
 
-          <div v-if="suggestions" class="rounded-xl bg-violet-50 border border-violet-100 p-4">
-            <p class="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{{ suggestions }}</p>
+          <div v-if="suggestions" class="space-y-3">
+            <h3 class="text-sm font-semibold text-violet-700">{{ suggestions.title }}</h3>
+            <div
+              v-for="(exercise, i) in suggestions.exercises"
+              :key="i"
+              class="rounded-xl bg-violet-50 border border-violet-100 p-4"
+            >
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-sm font-medium text-gray-800">{{ exercise.name }}</span>
+                <span class="text-xs font-semibold text-violet-600 bg-violet-100 px-2 py-0.5 rounded-full">
+                  {{ exercise.sets }} × {{ exercise.reps }}
+                </span>
+              </div>
+              <p v-if="exercise.notes" class="text-xs text-gray-500 leading-relaxed">{{ exercise.notes }}</p>
+            </div>
+
+            <p v-if="createProgramError" class="text-xs text-red-500">{{ createProgramError }}</p>
+            <p v-if="createProgramSuccess" class="text-xs text-green-600 font-medium">Program saved successfully.</p>
+
+            <button
+              :disabled="isCreatingProgram || createProgramSuccess"
+              class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              @click="handleSaveProgram"
+            >
+              <svg v-if="isCreatingProgram" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M5 13l4 4L19 7" />
+              </svg>
+              {{ isCreatingProgram ? 'Saving…' : 'Approve & Save as Program' }}
+            </button>
           </div>
 
           <p v-else-if="!isAILoading && !aiError" class="text-sm text-gray-400">

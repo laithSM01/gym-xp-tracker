@@ -1,7 +1,13 @@
 import { ref } from 'vue'
 
-interface Suggestion {
-  raw: string
+export interface AISuggestion {
+  title: string
+  exercises: {
+    name: string
+    sets: number
+    reps: number
+    notes: string
+  }[]
 }
 
 interface ClientAIPayload {
@@ -16,14 +22,14 @@ interface ClientAIPayload {
 }
 
 export function useClientAISuggestions() {
-  const suggestions = ref<string>('')
+  const suggestions = ref<AISuggestion | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
   async function fetchSuggestions(payload: ClientAIPayload) {
     isLoading.value = true
     error.value = null
-    suggestions.value = ''
+    suggestions.value = null
 
     try {
       const response = await fetch('http://localhost:8000/suggest/workout', {
@@ -39,7 +45,7 @@ export function useClientAISuggestions() {
       }
 
       const data = await response.json()
-      suggestions.value = data.suggestions
+      suggestions.value = data.suggestions as AISuggestion
     } catch (err) {
       error.value = 'Could not fetch suggestions. Make sure the AI service is running.'
     } finally {

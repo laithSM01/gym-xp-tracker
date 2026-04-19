@@ -2,13 +2,14 @@ import { ref, computed, onUnmounted, inject } from 'vue'
 import type { ConvexClient } from 'convex/browser'
 import { api } from '@convex/_generated/api'
 import type { Id } from '@convex/_generated/dataModel'
-import type { ClientDetail, Measurement } from '@/types/client'
+import type { ClientDetail, Measurement, Program } from '@/types/client'
 
 export function useClientDetail(clientId: string) {
   const convex = inject<ConvexClient>('convex')!
 
   const client = ref<ClientDetail | null>(null)
   const measurements = ref<Measurement[] | null>(null)
+  const programs = ref<Program[] | null>(null)
 
   const { unsubscribe: unsubClient } = convex.onUpdate(
     api.clients.getClientById,
@@ -22,9 +23,16 @@ export function useClientDetail(clientId: string) {
     (data) => { measurements.value = data as Measurement[] | null },
   )
 
+  const { unsubscribe: unsubPrograms } = convex.onUpdate(
+    api.programs.getClientPrograms,
+    { clientId: clientId as Id<'clients'> },
+    (data) => { programs.value = data as Program[] | null },
+  )
+
   onUnmounted(() => {
     unsubClient()
     unsubMeasurements()
+    unsubPrograms()
   })
 
   const activeChallenges = computed(() =>
@@ -32,6 +40,9 @@ export function useClientDetail(clientId: string) {
   )
   const completedChallenges = computed(() =>
     client.value?.challenges.filter((c) => c.status === 'completed') ?? [],
+  )
+  const activePrograms = computed(() =>
+    programs.value?.filter((p) => p.status === 'active') ?? [],
   )
 
   // Award XP
@@ -116,6 +127,35 @@ export function useClientDetail(clientId: string) {
     }
   }
 
+  // Create Program
+  const isCreatingProgram = ref(false)
+  const createProgramError = ref('')
+  const createProgramSuccess = ref(false)
+
+  async function createProgram(
+    title: string,
+    exercises: { name: string; sets: number; reps: number; notes?: string }[],
+  ): Promise<boolean> {
+    isCreatingProgram.value = true
+    createProgramError.value = ''
+    createProgramSuccess.value = false
+    try {
+      await convex.mutation(api.programs.createProgram, {
+        clientId: clientId as Id<'clients'>,
+        title,
+        exercises,
+      })
+      createProgramSuccess.value = true
+      setTimeout(() => { createProgramSuccess.value = false }, 3000)
+      return true
+    } catch (e: unknown) {
+      createProgramError.value = e instanceof Error ? e.message : 'Failed to create program'
+      return false
+    } finally {
+      isCreatingProgram.value = false
+    }
+  }
+
   // Nutritionist access toggle
   const isTogglingAccess = ref(false)
 
@@ -146,6 +186,10 @@ export function useClientDetail(clientId: string) {
       isAddingChallenge,
       addChallengeError,
       addChallengeSuccess,
+      isCreatingProgram,
+      createProgramError,
+      createProgramSuccess,
+      activePrograms,
     },
     loading: computed(() => client.value === null),
     error: null,
@@ -154,6 +198,7 @@ export function useClientDetail(clientId: string) {
       logMeasurement,
       toggleNutritionistAccess,
       addChallenge,
+      createProgram,
     },
   }
 }

@@ -2,7 +2,7 @@ import { ref, computed, watch, onUnmounted, inject } from 'vue'
 import type { ConvexClient } from 'convex/browser'
 import { api } from '@convex/_generated/api'
 import type { Id } from '@convex/_generated/dataModel'
-import type { Profile, Measurement, Challenges, NutritionPlan } from '@/types/client'
+import type { Profile, Measurement, Challenges, NutritionPlan, Program } from '@/types/client'
 
 export { tierConfig, tierMin, tierMax, xpProgress, formatDate } from '@/utils/xp'
 
@@ -13,6 +13,7 @@ export function useClientDashboard() {
   const measurements = ref<Measurement[] | null>(null)
   const challenges = ref<Challenges | null>(null)
   const nutritionPlan = ref<NutritionPlan | null | undefined>(undefined)
+  const programs = ref<Program[] | null>(null)
 
   const { unsubscribe: unsubProfile } = convex.onUpdate(
     api.clients.getMyProfile,
@@ -30,6 +31,12 @@ export function useClientDashboard() {
     api.challenges.getMyChallenges,
     {},
     (data) => { challenges.value = data as Challenges | null },
+  )
+
+  const { unsubscribe: unsubPrograms } = convex.onUpdate(
+    api.programs.getMyPrograms,
+    {},
+    (data) => { programs.value = data as Program[] | null },
   )
 
   let unsubNutritionPlan: (() => void) | null = null
@@ -50,6 +57,7 @@ export function useClientDashboard() {
     unsubMeasurements()
     unsubChallenges()
     unsubNutritionPlan?.()
+    unsubPrograms()
   })
 
   const recentMeasurements = computed(() => measurements.value?.slice(0, 5) ?? [])
@@ -74,6 +82,7 @@ export function useClientDashboard() {
       measurements,
       challenges,
       nutritionPlan,
+      programs,
       recentMeasurements,
       completingChallengeId,
     },

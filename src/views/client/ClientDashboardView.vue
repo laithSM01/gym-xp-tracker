@@ -2,7 +2,7 @@
 import { useClientDashboard, tierConfig, tierMin, tierMax, xpProgress, formatDate } from '@/composables/useClientDashboard'
 
 const { data, loading: isLoading, actions } = useClientDashboard()
-const { profile, challenges, nutritionPlan, recentMeasurements, completingChallengeId } = data
+const { profile, challenges, nutritionPlan, programs, recentMeasurements, completingChallengeId } = data
 </script>
 
 <template>
@@ -134,8 +134,43 @@ const { profile, challenges, nutritionPlan, recentMeasurements, completingChalle
           </div>
         </div><!-- end left column -->
 
-        <!-- Challenges -->
+        <!-- Challenges + Programs -->
         <div class="flex flex-col gap-6">
+          <!-- Active Program -->
+          <div v-if="programs && programs.length > 0" class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+            <h2 class="text-base font-semibold text-gray-900 mb-4">Active Program</h2>
+            <div class="flex flex-col gap-5">
+              <div
+                v-for="program in programs"
+                :key="program._id"
+                class="rounded-xl border border-gray-100 overflow-hidden"
+              >
+                <div class="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
+                  <span class="text-sm font-semibold text-gray-800">{{ program.title }}</span>
+                  <span class="text-xs text-gray-400">
+                    {{ new Date(program.startDate).toLocaleDateString() }} –
+                    {{ new Date(program.endDate).toLocaleDateString() }}
+                  </span>
+                </div>
+                <div class="divide-y divide-gray-50">
+                  <div
+                    v-for="(exercise, i) in program.exercises"
+                    :key="i"
+                    class="flex items-start gap-3 px-4 py-3"
+                  >
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-medium text-gray-800">{{ exercise.name }}</p>
+                      <p v-if="exercise.notes" class="text-xs text-gray-400 mt-0.5">{{ exercise.notes }}</p>
+                    </div>
+                    <span class="shrink-0 text-xs font-semibold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">
+                      {{ exercise.sets }} × {{ exercise.reps }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Active -->
           <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
             <h2 class="text-base font-semibold text-gray-900 mb-4">
