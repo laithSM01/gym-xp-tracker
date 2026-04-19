@@ -55,6 +55,19 @@ export function useClientDashboard() {
   const recentMeasurements = computed(() => measurements.value?.slice(0, 5) ?? [])
   const isLoading = computed(() => profile.value === null)
 
+  const completingChallengeId = ref<string | null>(null)
+
+  async function completeChallenge(challengeId: string): Promise<void> {
+    completingChallengeId.value = challengeId
+    try {
+      await convex.mutation(api.challenges.completeChallenge, {
+        challengeId: challengeId as Id<'challenges'>,
+      })
+    } finally {
+      completingChallengeId.value = null
+    }
+  }
+
   return {
     data: {
       profile,
@@ -62,9 +75,12 @@ export function useClientDashboard() {
       challenges,
       nutritionPlan,
       recentMeasurements,
+      completingChallengeId,
     },
     loading: isLoading,
     error: null,
-    actions: {},
+    actions: {
+      completeChallenge,
+    },
   }
 }

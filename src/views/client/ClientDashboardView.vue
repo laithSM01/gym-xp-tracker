@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { useClientDashboard, tierConfig, tierMin, tierMax, xpProgress, formatDate } from '@/composables/useClientDashboard'
 
-const { data, loading: isLoading } = useClientDashboard()
-const { profile, challenges, nutritionPlan, recentMeasurements } = data
+const { data, loading: isLoading, actions } = useClientDashboard()
+const { profile, challenges, nutritionPlan, recentMeasurements, completingChallengeId } = data
 </script>
 
 <template>
@@ -153,7 +153,13 @@ const { profile, challenges, nutritionPlan, recentMeasurements } = data
                 :key="c._id"
                 class="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100"
               >
-                <div class="mt-0.5 w-5 h-5 rounded-full border-2 border-gray-300 shrink-0" />
+                <button
+                  :disabled="completingChallengeId === c._id"
+                  class="mt-0.5 w-5 h-5 rounded-full border-2 shrink-0 transition-colors hover:border-green-400 hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  :class="completingChallengeId === c._id ? 'border-green-300 bg-green-50' : 'border-gray-300'"
+                  title="Mark as complete"
+                  @click="actions.completeChallenge(c._id)"
+                />
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-medium text-gray-800">{{ c.title }}</p>
                   <p class="text-xs text-gray-400 mt-0.5">{{ c.description }}</p>

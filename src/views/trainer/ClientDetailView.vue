@@ -22,6 +22,9 @@ const {
   logError,
   lastXPResult,
   isTogglingAccess,
+  isAddingChallenge,
+  addChallengeError,
+  addChallengeSuccess,
 } = data
 
 // Award XP form state
@@ -56,6 +59,25 @@ async function handleLogMeasurement() {
     measBodyFat.value = ''
     measMuscleMass.value = ''
     measNotes.value = ''
+  }
+}
+
+// Add Challenge form state
+const challengeTitle = ref('')
+const challengeDescription = ref('')
+const challengeXpReward = ref(100)
+
+async function handleAddChallenge() {
+  if (!challengeTitle.value.trim() || !challengeDescription.value.trim() || challengeXpReward.value <= 0) return
+  const ok = await actions.addChallenge(
+    challengeTitle.value.trim(),
+    challengeDescription.value.trim(),
+    challengeXpReward.value,
+  )
+  if (ok) {
+    challengeTitle.value = ''
+    challengeDescription.value = ''
+    challengeXpReward.value = 100
   }
 }
 
@@ -345,6 +367,53 @@ function handleGetSuggestions() {
               Active Challenges
               <span class="ml-2 text-xs font-normal text-gray-400">({{ activeChallenges.length }})</span>
             </h2>
+
+            <!-- Add challenge form -->
+            <div class="flex flex-col gap-3 mb-4 pb-4 border-b border-gray-100">
+              <div class="grid grid-cols-2 gap-3">
+                <div class="col-span-2">
+                  <label class="text-xs font-medium text-gray-500 mb-1 block">Title</label>
+                  <input
+                    v-model="challengeTitle"
+                    type="text"
+                    class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                    placeholder="e.g. 30-day plank streak"
+                    @keydown.enter="handleAddChallenge"
+                  />
+                </div>
+                <div class="col-span-2">
+                  <label class="text-xs font-medium text-gray-500 mb-1 block">Description</label>
+                  <input
+                    v-model="challengeDescription"
+                    type="text"
+                    class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                    placeholder="e.g. Hold a plank for 60s every day for 30 days"
+                  />
+                </div>
+                <div>
+                  <label class="text-xs font-medium text-gray-500 mb-1 block">XP Reward</label>
+                  <input
+                    v-model.number="challengeXpReward"
+                    type="number"
+                    min="1"
+                    class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                    placeholder="100"
+                  />
+                </div>
+                <div class="flex items-end">
+                  <button
+                    :disabled="isAddingChallenge || !challengeTitle.trim() || !challengeDescription.trim() || challengeXpReward <= 0"
+                    class="w-full px-4 py-2 rounded-xl text-sm font-medium text-white bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    @click="handleAddChallenge"
+                  >
+                    {{ isAddingChallenge ? 'Adding…' : '+ Add Challenge' }}
+                  </button>
+                </div>
+              </div>
+              <p v-if="addChallengeSuccess" class="text-xs text-green-600 font-medium">Challenge added!</p>
+              <p v-if="addChallengeError" class="text-xs text-red-500">{{ addChallengeError }}</p>
+            </div>
+
             <div v-if="activeChallenges.length === 0" class="text-sm text-gray-400">
               No active challenges.
             </div>

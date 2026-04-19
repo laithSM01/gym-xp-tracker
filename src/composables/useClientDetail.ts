@@ -89,6 +89,33 @@ export function useClientDetail(clientId: string) {
     }
   }
 
+  // Add Challenge
+  const isAddingChallenge = ref(false)
+  const addChallengeError = ref('')
+  const addChallengeSuccess = ref(false)
+
+  async function addChallenge(title: string, description: string, xpReward: number): Promise<boolean> {
+    isAddingChallenge.value = true
+    addChallengeError.value = ''
+    addChallengeSuccess.value = false
+    try {
+      await convex.mutation(api.challenges.addChallenge, {
+        assignedTo: clientId as Id<'clients'>,
+        title,
+        description,
+        xpReward,
+      })
+      addChallengeSuccess.value = true
+      setTimeout(() => { addChallengeSuccess.value = false }, 3000)
+      return true
+    } catch (e: unknown) {
+      addChallengeError.value = e instanceof Error ? e.message : 'Failed to add challenge'
+      return false
+    } finally {
+      isAddingChallenge.value = false
+    }
+  }
+
   // Nutritionist access toggle
   const isTogglingAccess = ref(false)
 
@@ -116,6 +143,9 @@ export function useClientDetail(clientId: string) {
       logError,
       lastXPResult,
       isTogglingAccess,
+      isAddingChallenge,
+      addChallengeError,
+      addChallengeSuccess,
     },
     loading: computed(() => client.value === null),
     error: null,
@@ -123,6 +153,7 @@ export function useClientDetail(clientId: string) {
       awardXP,
       logMeasurement,
       toggleNutritionistAccess,
+      addChallenge,
     },
   }
 }
