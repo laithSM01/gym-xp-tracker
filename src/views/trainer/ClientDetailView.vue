@@ -3,7 +3,10 @@ import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useClientDetail } from '@/composables/useClientDetail'
 import { useClientAISuggestions } from '@/composables/useClientAISuggestions'
+import { GOAL_OPTIONS } from '@/composables/useNewClient'
 import { tierConfig, tierMin, tierMax, xpProgress, formatDate } from '@/utils/xp'
+
+const goalOptions = GOAL_OPTIONS
 
 const route = useRoute()
 const router = useRouter()
@@ -30,6 +33,21 @@ const {
   createProgramSuccess,
   activePrograms,
 } = data
+
+// Edit Goal modal state
+const isEditingGoal = ref(false)
+const editGoalValue = ref('')
+
+function openGoalModal() {
+  editGoalValue.value = client.value!.goal
+  isEditingGoal.value = true
+}
+
+async function handleSaveGoal() {
+  if (!editGoalValue.value) return
+  await actions.updateGoal(editGoalValue.value)
+  isEditingGoal.value = false
+}
 
 // Award XP form state
 const xpAmount = ref(50)
@@ -88,16 +106,34 @@ async function handleAddChallenge() {
 // AI Suggestions
 const { suggestions, isLoading: isAILoading, error: aiError, fetchSuggestions } = useClientAISuggestions()
 
-const aiPayload = computed(() => ({
-  age: client.value!.age,
-  goal: client.value!.goal,
-  currentXP: client.value!.currentXP,
-  currentTier: client.value!.currentTier,
-  measurements: measurements.value ?? [],
-  xpLogs: client.value!.xpLogs,
-  currentExercises: [] as string[],
-  completedChallenges: completedChallenges.value.length,
-}))
+const aiPayload = computed(() => {
+  const active = activePrograms.value?.find(p => p.status === 'active')
+  const past = activePrograms.value?.filter(p => p.status === 'completed') ?? []
+
+  return {
+    age: client.value!.age,
+    goal: client.value!.goal,
+    currentXP: client.value!.currentXP,
+    currentTier: client.value!.currentTier,
+    measurements: (measurements.value ?? []).map(m => ({
+      weight: m.weight,
+      bodyFat: m.bodyFat,
+      muscleMass: m.muscleMass,
+    })),
+    xpLogs: (client.value!.xpLogs ?? []).map(l => ({
+      amount: l.amount,
+      reason: l.reason,
+    })),
+    currentExercises: active?.exercises.map(e => e.name) ?? [],
+    completedChallenges: (client.value!.challenges ?? [])
+      .filter(c => c.status === 'completed')
+      .map(c => c.title),
+    pastPrograms: past.slice(0, 3).map(p => ({
+      title: p.title,
+      exercises: p.exercises.map(e => e.name),
+    })),
+  }
+})
 
 function handleGetSuggestions() {
   if (!client.value) return
@@ -113,10 +149,8 @@ async function handleSaveProgram() {
 <template>
   <div class="max-w-7xl mx-auto">
     <!-- Back -->
-    <button
-      class="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mb-6 transition-colors"
-      @click="router.back()"
-    >
+    <button class="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mb-6 transition-colors"
+      @click="router.back()">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
       </svg>
@@ -135,28 +169,40 @@ async function handleSaveProgram() {
           <div>
             <h1 class="text-2xl font-bold text-gray-900">{{ client.userName }}</h1>
             <p v-if="client.userEmail" class="text-sm text-gray-400 mt-0.5">{{ client.userEmail }}</p>
-            <p class="text-sm text-gray-500 mt-1">Age {{ client.age }} · {{ client.goal }}</p>
+            <p class="text-sm text-gray-500 mt-1 flex items-center gap-2">
+              Age {{ client.age }} · {{ client.goal }}
+              <button
+                class="text-gray-300 hover:text-gray-500 transition-colors"
+                title="Edit goal"
+                @click="openGoalModal"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828A2 2 0 0110 16H8v-2a2 2 0 01.586-1.414z"
+                  />
+                </svg>
+              </button>
+            </p>
           </div>
           <div class="flex items-center gap-3 shrink-0">
             <!-- Nutritionist access toggle -->
-            <button
-              :disabled="isTogglingAccess"
+            <button :disabled="isTogglingAccess"
               class="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-xl border transition-colors disabled:opacity-50"
               :class="client.nutritionistAccess
                 ? 'bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100'
                 : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'"
-              @click="actions.toggleNutritionistAccess()"
-            >
+              @click="actions.toggleNutritionistAccess()">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
               {{ client.nutritionistAccess ? 'Nutritionist: ON' : 'Nutritionist: OFF' }}
             </button>
-            <span
-              class="text-sm font-semibold px-3 py-1 rounded-full ring-1"
-              :class="tierConfig[client.currentTier].badge"
-            >
+            <span class="text-sm font-semibold px-3 py-1 rounded-full ring-1"
+              :class="tierConfig[client.currentTier].badge">
               {{ tierConfig[client.currentTier].label }}
             </span>
           </div>
@@ -175,11 +221,8 @@ async function handleSaveProgram() {
             <span v-else class="text-xs font-semibold text-green-500">MAX TIER</span>
           </div>
           <div class="h-3 bg-gray-100 rounded-full overflow-hidden">
-            <div
-              class="h-full rounded-full transition-all duration-700"
-              :class="tierConfig[client.currentTier].bar"
-              :style="{ width: xpProgress(client.currentXP, client.currentTier) + '%' }"
-            />
+            <div class="h-full rounded-full transition-all duration-700" :class="tierConfig[client.currentTier].bar"
+              :style="{ width: xpProgress(client.currentXP, client.currentTier) + '%' }" />
           </div>
           <div class="flex justify-between text-xs text-gray-400 mt-1">
             <span>{{ tierMin[client.currentTier].toLocaleString() }}</span>
@@ -200,30 +243,19 @@ async function handleSaveProgram() {
             <div class="flex flex-col gap-3">
               <div>
                 <label class="text-xs font-medium text-gray-500 mb-1 block">Amount</label>
-                <input
-                  v-model.number="xpAmount"
-                  type="number"
-                  min="1"
-                  max="1000"
+                <input v-model.number="xpAmount" type="number" min="1" max="1000"
                   class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
-                  placeholder="50"
-                />
+                  placeholder="50" />
               </div>
               <div>
                 <label class="text-xs font-medium text-gray-500 mb-1 block">Reason</label>
-                <input
-                  v-model="xpReason"
-                  type="text"
+                <input v-model="xpReason" type="text"
                   class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
-                  placeholder="e.g. Completed weekly challenge"
-                  @keydown.enter="handleAwardXP"
-                />
+                  placeholder="e.g. Completed weekly challenge" @keydown.enter="handleAwardXP" />
               </div>
-              <button
-                :disabled="isAwarding || !xpAmount || xpAmount <= 0 || !xpReason.trim()"
+              <button :disabled="isAwarding || !xpAmount || xpAmount <= 0 || !xpReason.trim()"
                 class="w-full px-4 py-2 rounded-xl text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                @click="handleAwardXP"
-              >
+                @click="handleAwardXP">
                 {{ isAwarding ? 'Awarding…' : `+ Award ${xpAmount} XP` }}
               </button>
               <p v-if="awardSuccess" class="text-xs text-green-600 text-center font-medium">
@@ -238,11 +270,8 @@ async function handleSaveProgram() {
             <h2 class="text-base font-semibold text-gray-900 mb-4">XP History</h2>
             <div v-if="client.xpLogs.length === 0" class="text-sm text-gray-400">No XP awarded yet.</div>
             <ul v-else class="flex flex-col divide-y divide-gray-50">
-              <li
-                v-for="log in client.xpLogs"
-                :key="log._id"
-                class="flex items-start justify-between gap-2 py-3 first:pt-0 last:pb-0"
-              >
+              <li v-for="log in client.xpLogs" :key="log._id"
+                class="flex items-start justify-between gap-2 py-3 first:pt-0 last:pb-0">
                 <div class="min-w-0">
                   <p class="text-sm text-gray-700 leading-snug">{{ log.reason }}</p>
                   <p class="text-xs text-gray-400 mt-0.5">{{ formatDate(log.createdAt) }}</p>
@@ -272,11 +301,7 @@ async function handleSaveProgram() {
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
-                  <tr
-                    v-for="m in measurements"
-                    :key="m._id"
-                    class="text-gray-700"
-                  >
+                  <tr v-for="m in measurements" :key="m._id" class="text-gray-700">
                     <td class="py-2.5 text-gray-500 text-xs">{{ formatDate(m.timestamp) }}</td>
                     <td class="py-2.5 text-right font-medium">{{ m.weight }} kg</td>
                     <td class="py-2.5 text-right">{{ m.bodyFat }}%</td>
@@ -300,53 +325,32 @@ async function handleSaveProgram() {
               <div class="grid grid-cols-2 gap-3">
                 <div>
                   <label class="text-xs font-medium text-gray-500 mb-1 block">Weight (kg)</label>
-                  <input
-                    v-model="measWeight"
-                    type="number"
-                    step="0.1"
-                    min="0"
+                  <input v-model="measWeight" type="number" step="0.1" min="0"
                     class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    placeholder="75.0"
-                  />
+                    placeholder="75.0" />
                 </div>
                 <div>
                   <label class="text-xs font-medium text-gray-500 mb-1 block">Body Fat (%)</label>
-                  <input
-                    v-model="measBodyFat"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="100"
+                  <input v-model="measBodyFat" type="number" step="0.1" min="0" max="100"
                     class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    placeholder="18.5"
-                  />
+                    placeholder="18.5" />
                 </div>
               </div>
               <div>
                 <label class="text-xs font-medium text-gray-500 mb-1 block">Muscle Mass (kg)</label>
-                <input
-                  v-model="measMuscleMass"
-                  type="number"
-                  step="0.1"
-                  min="0"
+                <input v-model="measMuscleMass" type="number" step="0.1" min="0"
                   class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  placeholder="35.0"
-                />
+                  placeholder="35.0" />
               </div>
               <div>
                 <label class="text-xs font-medium text-gray-500 mb-1 block">Notes (optional)</label>
-                <input
-                  v-model="measNotes"
-                  type="text"
+                <input v-model="measNotes" type="text"
                   class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  placeholder="Post-session notes…"
-                />
+                  placeholder="Post-session notes…" />
               </div>
-              <button
-                :disabled="isLogging || !measWeight || !measBodyFat || !measMuscleMass"
+              <button :disabled="isLogging || !measWeight || !measBodyFat || !measMuscleMass"
                 class="w-full px-4 py-2 rounded-xl text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                @click="handleLogMeasurement"
-              >
+                @click="handleLogMeasurement">
                 {{ isLogging ? 'Saving…' : 'Save Measurement' }}
               </button>
 
@@ -354,11 +358,7 @@ async function handleSaveProgram() {
               <div v-if="lastXPResult" class="rounded-xl bg-green-50 border border-green-100 p-3">
                 <p class="text-sm font-bold text-green-700">+{{ lastXPResult.xpEarned }} XP earned!</p>
                 <ul class="mt-1">
-                  <li
-                    v-for="(reason, i) in lastXPResult.reasons"
-                    :key="i"
-                    class="text-xs text-green-600"
-                  >
+                  <li v-for="(reason, i) in lastXPResult.reasons" :key="i" class="text-xs text-green-600">
                     {{ reason }}
                   </li>
                 </ul>
@@ -382,39 +382,27 @@ async function handleSaveProgram() {
               <div class="grid grid-cols-2 gap-3">
                 <div class="col-span-2">
                   <label class="text-xs font-medium text-gray-500 mb-1 block">Title</label>
-                  <input
-                    v-model="challengeTitle"
-                    type="text"
+                  <input v-model="challengeTitle" type="text"
                     class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-                    placeholder="e.g. 30-day plank streak"
-                    @keydown.enter="handleAddChallenge"
-                  />
+                    placeholder="e.g. 30-day plank streak" @keydown.enter="handleAddChallenge" />
                 </div>
                 <div class="col-span-2">
                   <label class="text-xs font-medium text-gray-500 mb-1 block">Description</label>
-                  <input
-                    v-model="challengeDescription"
-                    type="text"
+                  <input v-model="challengeDescription" type="text"
                     class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-                    placeholder="e.g. Hold a plank for 60s every day for 30 days"
-                  />
+                    placeholder="e.g. Hold a plank for 60s every day for 30 days" />
                 </div>
                 <div>
                   <label class="text-xs font-medium text-gray-500 mb-1 block">XP Reward</label>
-                  <input
-                    v-model.number="challengeXpReward"
-                    type="number"
-                    min="1"
+                  <input v-model.number="challengeXpReward" type="number" min="1"
                     class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-                    placeholder="100"
-                  />
+                    placeholder="100" />
                 </div>
                 <div class="flex items-end">
                   <button
                     :disabled="isAddingChallenge || !challengeTitle.trim() || !challengeDescription.trim() || challengeXpReward <= 0"
                     class="w-full px-4 py-2 rounded-xl text-sm font-medium text-white bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    @click="handleAddChallenge"
-                  >
+                    @click="handleAddChallenge">
                     {{ isAddingChallenge ? 'Adding…' : '+ Add Challenge' }}
                   </button>
                 </div>
@@ -427,19 +415,15 @@ async function handleSaveProgram() {
               No active challenges.
             </div>
             <ul v-else class="flex flex-col gap-3">
-              <li
-                v-for="c in activeChallenges"
-                :key="c._id"
-                class="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100"
-              >
+              <li v-for="c in activeChallenges" :key="c._id"
+                class="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
                 <div class="mt-0.5 w-5 h-5 rounded-full border-2 border-gray-300 shrink-0" />
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-medium text-gray-800">{{ c.title }}</p>
                   <p class="text-xs text-gray-400 mt-0.5">{{ c.description }}</p>
                 </div>
                 <span
-                  class="shrink-0 text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full whitespace-nowrap"
-                >
+                  class="shrink-0 text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full whitespace-nowrap">
                   +{{ c.xpReward }} XP
                 </span>
               </li>
@@ -453,18 +437,11 @@ async function handleSaveProgram() {
               <span class="ml-2 text-xs font-normal text-gray-400">({{ completedChallenges.length }})</span>
             </h2>
             <ul class="flex flex-col divide-y divide-gray-50">
-              <li
-                v-for="c in completedChallenges"
-                :key="c._id"
-                class="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0"
-              >
+              <li v-for="c in completedChallenges" :key="c._id"
+                class="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
                 <svg class="w-5 h-5 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span class="text-sm text-gray-400 line-through flex-1">{{ c.title }}</span>
                 <span v-if="c.completedAt" class="text-xs text-gray-300">{{ formatDate(c.completedAt) }}</span>
@@ -473,6 +450,7 @@ async function handleSaveProgram() {
           </div>
         </div>
       </div>
+
       <!-- Programs -->
       <div class="mt-6">
         <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
@@ -481,11 +459,8 @@ async function handleSaveProgram() {
             No active programs. Generate and approve one from the AI suggestions below.
           </div>
           <div v-else class="flex flex-col gap-5">
-            <div
-              v-for="program in activePrograms"
-              :key="program._id"
-              class="rounded-xl border border-gray-100 overflow-hidden"
-            >
+            <div v-for="program in activePrograms" :key="program._id"
+              class="rounded-xl border border-gray-100 overflow-hidden">
               <div class="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
                 <span class="text-sm font-semibold text-gray-800">{{ program.title }}</span>
                 <span class="text-xs text-gray-400">
@@ -494,11 +469,7 @@ async function handleSaveProgram() {
                 </span>
               </div>
               <div class="divide-y divide-gray-50">
-                <div
-                  v-for="(exercise, i) in program.exercises"
-                  :key="i"
-                  class="flex items-start gap-3 px-4 py-3"
-                >
+                <div v-for="(exercise, i) in program.exercises" :key="i" class="flex items-start gap-3 px-4 py-3">
                   <div class="flex-1 min-w-0">
                     <p class="text-sm font-medium text-gray-800">{{ exercise.name }}</p>
                     <p v-if="exercise.notes" class="text-xs text-gray-400 mt-0.5">{{ exercise.notes }}</p>
@@ -521,18 +492,15 @@ async function handleSaveProgram() {
               <h2 class="text-base font-semibold text-gray-900">AI Workout Suggestions</h2>
               <p class="text-xs text-gray-400 mt-0.5">Generated based on client's XP, tier, measurements, and goals</p>
             </div>
-            <button
-              :disabled="isAILoading"
+            <button :disabled="isAILoading"
               class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
-              @click="handleGetSuggestions"
-            >
+              @click="handleGetSuggestions">
               <svg v-if="isAILoading" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
               <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M13 10V3L4 14h7v7l9-11h-7z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
               {{ isAILoading ? 'Generating…' : 'Get Suggestions' }}
             </button>
@@ -542,11 +510,8 @@ async function handleSaveProgram() {
 
           <div v-if="suggestions" class="space-y-3">
             <h3 class="text-sm font-semibold text-violet-700">{{ suggestions.title }}</h3>
-            <div
-              v-for="(exercise, i) in suggestions.exercises"
-              :key="i"
-              class="rounded-xl bg-violet-50 border border-violet-100 p-4"
-            >
+            <div v-for="(exercise, i) in suggestions.exercises" :key="i"
+              class="rounded-xl bg-violet-50 border border-violet-100 p-4">
               <div class="flex items-center justify-between mb-1">
                 <span class="text-sm font-medium text-gray-800">{{ exercise.name }}</span>
                 <span class="text-xs font-semibold text-violet-600 bg-violet-100 px-2 py-0.5 rounded-full">
@@ -559,18 +524,15 @@ async function handleSaveProgram() {
             <p v-if="createProgramError" class="text-xs text-red-500">{{ createProgramError }}</p>
             <p v-if="createProgramSuccess" class="text-xs text-green-600 font-medium">Program saved successfully.</p>
 
-            <button
-              :disabled="isCreatingProgram || createProgramSuccess"
+            <button :disabled="isCreatingProgram || createProgramSuccess"
               class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              @click="handleSaveProgram"
-            >
+              @click="handleSaveProgram">
               <svg v-if="isCreatingProgram" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
               <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M5 13l4 4L19 7" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
               </svg>
               {{ isCreatingProgram ? 'Saving…' : 'Approve & Save as Program' }}
             </button>
@@ -582,5 +544,38 @@ async function handleSaveProgram() {
         </div>
       </div>
     </template>
+
+    <!-- Edit Goal Modal -->
+    <div
+      v-if="isEditingGoal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+      @click.self="isEditingGoal = false"
+    >
+      <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4">
+        <h3 class="text-base font-semibold text-gray-900 mb-4">Edit Client Goal</h3>
+        <select
+          v-model="editGoalValue"
+          class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white mb-4"
+        >
+          <option value="" disabled>Select a goal…</option>
+          <option v-for="option in goalOptions" :key="option" :value="option">{{ option }}</option>
+        </select>
+        <div class="flex gap-3">
+          <button
+            class="flex-1 px-4 py-2 rounded-xl text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
+            @click="isEditingGoal = false"
+          >
+            Cancel
+          </button>
+          <button
+            :disabled="!editGoalValue"
+            class="flex-1 px-4 py-2 rounded-xl text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 transition-colors"
+            @click="handleSaveGoal"
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

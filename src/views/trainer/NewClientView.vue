@@ -106,13 +106,16 @@ const {
               </div>
               <div>
                 <label class="text-xs font-medium text-gray-600 mb-1 block">Goal</label>
-                <input
+                <select
                   v-model="goal"
-                  type="text"
                   required
-                  class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
-                  placeholder="e.g. Lose 10kg"
-                />
+                  class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white"
+                >
+                  <option value="" disabled>Select a goal…</option>
+                  <option v-for="option in actions.goalOptions" :key="option" :value="option">
+                    {{ option }}
+                  </option>
+                </select>
               </div>
             </div>
           </div>

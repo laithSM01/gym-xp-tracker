@@ -292,6 +292,29 @@ export const getAccessibleClients = query({
   },
 });
 
+export const updateClientGoal = mutation({
+  args: {
+    clientId: v.id('clients'),
+    goal: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+
+    const trainer = await ctx.db
+      .query('users')
+      .withIndex('by_token', (q) => q.eq('tokenIdentifier', identity.tokenIdentifier))
+      .unique()
+    if (!trainer) throw new Error('Trainer not found')
+
+    const client = await ctx.db.get(args.clientId)
+    if (!client) throw new Error('Client not found')
+    if (client.trainerId !== trainer._id) throw new Error('Not authorized')
+
+    await ctx.db.patch(args.clientId, { goal: args.goal })
+  },
+})
+
 export const toggleNutritionistAccess = mutation({
   args: { clientId: v.id("clients") },
   handler: async (ctx, args) => {

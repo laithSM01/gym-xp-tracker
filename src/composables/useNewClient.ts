@@ -5,6 +5,19 @@ import { api } from '@convex/_generated/api'
 import type { Id } from '@convex/_generated/dataModel'
 import type { UnassignedUser } from '@/types/client'
 
+export const GOAL_OPTIONS = [
+  'Fat Loss',
+  'Muscle Gain',
+  'Strength Building',
+  'General Fitness',
+  'Endurance / Cardio',
+  'Body Recomposition',
+  'Athletic Performance',
+  'Flexibility & Mobility',
+  'Rehabilitation & Recovery',
+  'Lifestyle & Wellness',
+] as const
+
 export function useNewClient() {
   const convex = inject<ConvexClient>('convex')!
   const router = useRouter()
@@ -36,7 +49,7 @@ export function useNewClient() {
   }
 
   const age = ref('')
-  const goal = ref('')
+  const goal = ref<string>('')
   const weight = ref('')
   const bodyFat = ref('')
   const muscleMass = ref('')
@@ -98,6 +111,7 @@ export function useNewClient() {
     actions: {
       submit,
       displayName,
+      goalOptions: GOAL_OPTIONS,
     },
   }
 }

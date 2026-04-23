@@ -18,7 +18,8 @@ interface ClientAIPayload {
   measurements: object[]
   xpLogs: object[]
   currentExercises: string[]
-  completedChallenges: number
+  completedChallenges: string[] // was number, now titles
+  pastPrograms: { title: string; exercises: string[] }[] // NEW
 }
 
 export function useClientAISuggestions() {

@@ -170,6 +170,19 @@ export function useClientDetail(clientId: string) {
     }
   }
 
+  // Update Goal
+  async function updateGoal(newGoal: string): Promise<boolean> {
+    try {
+      await convex.mutation(api.clients.updateClientGoal, {
+        clientId: clientId as Id<'clients'>,
+        goal: newGoal,
+      })
+      return true
+    } catch (e) {
+      return false
+    }
+  }
+
   return {
     data: {
       client,
@@ -199,6 +212,7 @@ export function useClientDetail(clientId: string) {
       toggleNutritionistAccess,
       addChallenge,
       createProgram,
+      updateGoal,
     },
   }
 }
