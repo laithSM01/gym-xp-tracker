@@ -5,6 +5,7 @@ import { useClientDetail } from '@/composables/useClientDetail'
 import { useClientAISuggestions } from '@/composables/useClientAISuggestions'
 import { GOAL_OPTIONS } from '@/composables/useNewClient'
 import { tierConfig, tierMin, tierMax, xpProgress, formatDate } from '@/utils/xp'
+import type { Program } from '@/types/client'
 
 const goalOptions = GOAL_OPTIONS
 
@@ -103,8 +104,34 @@ async function handleAddChallenge() {
   }
 }
 
+// Collapsible program days — keyed as "<programId>-<dayIndex>"
+const openProgramDayKeys = ref<string[]>([])
+
+function toggleProgramDay(programId: string, dayIndex: number) {
+  const key = `${programId}-${dayIndex}`
+  const idx = openProgramDayKeys.value.indexOf(key)
+  if (idx === -1) openProgramDayKeys.value.push(key)
+  else openProgramDayKeys.value.splice(idx, 1)
+}
+
+function isProgramDayOpen(programId: string, dayIndex: number): boolean {
+  return openProgramDayKeys.value.includes(`${programId}-${dayIndex}`)
+}
+
+// Program status toggle
+async function handleToggleProgramStatus(program: Program) {
+  const newStatus = program.status === 'active' ? 'completed' : 'active'
+  await actions.updateProgramStatus(program._id, newStatus)
+}
+
 // AI Suggestions
 const { suggestions, isLoading: isAILoading, error: aiError, fetchSuggestions } = useClientAISuggestions()
+const openDayIndices = ref<number[]>([])
+function toggleDay(i: number) {
+  const idx = openDayIndices.value.indexOf(i)
+  if (idx === -1) openDayIndices.value.push(i)
+  else openDayIndices.value.splice(idx, 1)
+}
 
 const aiPayload = computed(() => {
   const active = activePrograms.value?.find(p => p.status === 'active')
@@ -124,25 +151,26 @@ const aiPayload = computed(() => {
       amount: l.amount,
       reason: l.reason,
     })),
-    currentExercises: active?.exercises.map(e => e.name) ?? [],
+    currentExercises: [...new Set(active?.weeklySchedule?.flatMap(d => d.exercises.map(e => e.name)) ?? [])],
     completedChallenges: (client.value!.challenges ?? [])
       .filter(c => c.status === 'completed')
       .map(c => c.title),
     pastPrograms: past.slice(0, 3).map(p => ({
       title: p.title,
-      exercises: p.exercises.map(e => e.name),
+      exercises: p.weeklySchedule?.flatMap(d => d.exercises.map(e => e.name)),
     })),
   }
 })
 
 function handleGetSuggestions() {
   if (!client.value) return
+  openDayIndices.value = []
   fetchSuggestions(aiPayload.value)
 }
 
 async function handleSaveProgram() {
   if (!suggestions.value) return
-  await actions.createProgram(suggestions.value.title, suggestions.value.exercises)
+  await actions.createProgram(suggestions.value.title, suggestions.value.weeklySchedule)
 }
 </script>
 
@@ -171,18 +199,11 @@ async function handleSaveProgram() {
             <p v-if="client.userEmail" class="text-sm text-gray-400 mt-0.5">{{ client.userEmail }}</p>
             <p class="text-sm text-gray-500 mt-1 flex items-center gap-2">
               Age {{ client.age }} · {{ client.goal }}
-              <button
-                class="text-gray-300 hover:text-gray-500 transition-colors"
-                title="Edit goal"
-                @click="openGoalModal"
-              >
+              <button class="text-gray-300 hover:text-gray-500 transition-colors" title="Edit goal"
+                @click="openGoalModal">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828A2 2 0 0110 16H8v-2a2 2 0 01.586-1.414z"
-                  />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828A2 2 0 0110 16H8v-2a2 2 0 01.586-1.414z" />
                 </svg>
               </button>
             </p>
@@ -454,29 +475,68 @@ async function handleSaveProgram() {
       <!-- Programs -->
       <div class="mt-6">
         <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-          <h2 class="text-base font-semibold text-gray-900 mb-4">Active Programs</h2>
+          <h2 class="text-base font-semibold text-gray-900 mb-4">Programs</h2>
           <div v-if="activePrograms.length === 0" class="text-sm text-gray-400">
-            No active programs. Generate and approve one from the AI suggestions below.
+            No programs yet. Generate and approve one from the AI suggestions below.
           </div>
           <div v-else class="flex flex-col gap-5">
             <div v-for="program in activePrograms" :key="program._id"
-              class="rounded-xl border border-gray-100 overflow-hidden">
-              <div class="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
-                <span class="text-sm font-semibold text-gray-800">{{ program.title }}</span>
-                <span class="text-xs text-gray-400">
+              class="rounded-xl border border-gray-100 overflow-hidden transition-opacity"
+              :class="{ 'opacity-50': program.status === 'completed' }">
+              <!-- Program card header -->
+              <div class="flex items-center gap-3 px-4 py-3 bg-gray-50 border-b border-gray-100">
+                <span class="text-sm font-semibold text-gray-800 flex-1 min-w-0 truncate">{{ program.title }}</span>
+                <span class="text-xs text-gray-400 shrink-0">
                   {{ new Date(program.startDate).toLocaleDateString() }} –
                   {{ new Date(program.endDate).toLocaleDateString() }}
                 </span>
+                <span class="shrink-0 text-xs font-medium px-2 py-0.5 rounded-full"
+                  :class="program.status === 'active'
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-gray-100 text-gray-500'">
+                  {{ program.status === 'active' ? 'Active' : 'Completed' }}
+                </span>
+                <!-- Status toggle switch -->
+                <button
+                  class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors focus:outline-none"
+                  :class="program.status === 'active' ? 'bg-green-500' : 'bg-gray-300'"
+                  @click="handleToggleProgramStatus(program)">
+                  <span
+                    class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200"
+                    :class="program.status === 'active' ? 'translate-x-4' : 'translate-x-0.5'" />
+                </button>
               </div>
-              <div class="divide-y divide-gray-50">
-                <div v-for="(exercise, i) in program.exercises" :key="i" class="flex items-start gap-3 px-4 py-3">
-                  <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-gray-800">{{ exercise.name }}</p>
-                    <p v-if="exercise.notes" class="text-xs text-gray-400 mt-0.5">{{ exercise.notes }}</p>
+              <!-- Collapsible days -->
+              <div class="divide-y divide-gray-100">
+                <div v-for="(day, di) in program.weeklySchedule" :key="di">
+                  <button
+                    class="w-full flex items-center gap-2 px-4 py-2.5 bg-gray-50/60 hover:bg-gray-100/80 text-left transition-colors"
+                    @click="toggleProgramDay(program._id, di)">
+                    <span class="text-xs font-bold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full shrink-0">
+                      Day {{ day.day }}
+                    </span>
+                    <span class="text-xs font-medium text-gray-500 flex-1">{{ day.type }}</span>
+                    <span class="text-xs text-gray-400 shrink-0">
+                      {{ day.exercises.length }} exercise{{ day.exercises.length !== 1 ? 's' : '' }}
+                    </span>
+                    <svg class="w-4 h-4 text-gray-400 transition-transform shrink-0"
+                      :class="{ 'rotate-180': isProgramDayOpen(program._id, di) }"
+                      fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  <div v-if="isProgramDayOpen(program._id, di)" class="divide-y divide-gray-50">
+                    <div v-for="(exercise, ei) in day.exercises" :key="ei"
+                      class="flex items-start gap-3 px-4 py-3">
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-800">{{ exercise.name }}</p>
+                        <p v-if="exercise.notes" class="text-xs text-gray-400 mt-0.5">{{ exercise.notes }}</p>
+                      </div>
+                      <span class="shrink-0 text-xs font-semibold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">
+                        {{ exercise.sets }} × {{ exercise.reps }}
+                      </span>
+                    </div>
                   </div>
-                  <span class="shrink-0 text-xs font-semibold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">
-                    {{ exercise.sets }} × {{ exercise.reps }}
-                  </span>
                 </div>
               </div>
             </div>
@@ -510,15 +570,33 @@ async function handleSaveProgram() {
 
           <div v-if="suggestions" class="space-y-3">
             <h3 class="text-sm font-semibold text-violet-700">{{ suggestions.title }}</h3>
-            <div v-for="(exercise, i) in suggestions.exercises" :key="i"
-              class="rounded-xl bg-violet-50 border border-violet-100 p-4">
-              <div class="flex items-center justify-between mb-1">
-                <span class="text-sm font-medium text-gray-800">{{ exercise.name }}</span>
-                <span class="text-xs font-semibold text-violet-600 bg-violet-100 px-2 py-0.5 rounded-full">
-                  {{ exercise.sets }} × {{ exercise.reps }}
-                </span>
+            <div v-for="(day, i) in suggestions.weeklySchedule" :key="i"
+              class="rounded-xl border border-violet-100 overflow-hidden">
+              <button
+                class="w-full flex items-center justify-between px-4 py-3 bg-violet-50 text-left hover:bg-violet-100 transition-colors"
+                @click="toggleDay(i)">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-bold text-violet-600 bg-violet-100 px-2 py-0.5 rounded-full">Day {{ day.day
+                  }}</span>
+                  <span class="text-sm font-medium text-gray-800">{{ day.type }}</span>
+                </div>
+                <svg class="w-4 h-4 text-violet-400 transition-transform"
+                  :class="{ 'rotate-180': openDayIndices.includes(i) }" fill="none" stroke="currentColor"
+                  viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              <div v-if="openDayIndices.includes(i)" class="divide-y divide-gray-50">
+                <div v-for="(exercise, j) in day.exercises" :key="j" class="flex items-start gap-3 px-4 py-3">
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-800">{{ exercise.name }}</p>
+                    <p v-if="exercise.notes" class="text-xs text-gray-500 mt-0.5">{{ exercise.notes }}</p>
+                  </div>
+                  <span class="shrink-0 text-xs font-semibold text-violet-600 bg-violet-100 px-2 py-0.5 rounded-full">
+                    {{ exercise.sets }} × {{ exercise.reps }}
+                  </span>
+                </div>
               </div>
-              <p v-if="exercise.notes" class="text-xs text-gray-500 leading-relaxed">{{ exercise.notes }}</p>
             </div>
 
             <p v-if="createProgramError" class="text-xs text-red-500">{{ createProgramError }}</p>
@@ -546,32 +624,24 @@ async function handleSaveProgram() {
     </template>
 
     <!-- Edit Goal Modal -->
-    <div
-      v-if="isEditingGoal"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
-      @click.self="isEditingGoal = false"
-    >
+    <div v-if="isEditingGoal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+      @click.self="isEditingGoal = false">
       <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4">
         <h3 class="text-base font-semibold text-gray-900 mb-4">Edit Client Goal</h3>
-        <select
-          v-model="editGoalValue"
-          class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white mb-4"
-        >
+        <select v-model="editGoalValue"
+          class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white mb-4">
           <option value="" disabled>Select a goal…</option>
           <option v-for="option in goalOptions" :key="option" :value="option">{{ option }}</option>
         </select>
         <div class="flex gap-3">
           <button
             class="flex-1 px-4 py-2 rounded-xl text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
-            @click="isEditingGoal = false"
-          >
+            @click="isEditingGoal = false">
             Cancel
           </button>
-          <button
-            :disabled="!editGoalValue"
+          <button :disabled="!editGoalValue"
             class="flex-1 px-4 py-2 rounded-xl text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 transition-colors"
-            @click="handleSaveGoal"
-          >
+            @click="handleSaveGoal">
             Save
           </button>
         </div>

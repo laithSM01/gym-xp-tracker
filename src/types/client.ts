@@ -88,12 +88,18 @@ export type ProgramExercise = {
   notes?: string
 }
 
+export type DaySchedule = {
+  day: number
+  type: string
+  exercises: ProgramExercise[]
+}
+
 export type Program = {
   _id: string
   title: string
   startDate: number
   endDate: number
-  exercises: ProgramExercise[]
+  weeklySchedule: DaySchedule[]
   status: 'active' | 'completed'
 }
 

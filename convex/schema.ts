@@ -66,12 +66,18 @@ export default defineSchema({
     title: v.string(),
     startDate: v.number(),
     endDate: v.number(),
-    exercises: v.array(
+    weeklySchedule: v.array(
       v.object({
-        name: v.string(),
-        sets: v.number(),
-        reps: v.number(),
-        notes: v.optional(v.string()),
+        day: v.number(),
+        type: v.string(),
+        exercises: v.array(
+          v.object({
+            name: v.string(),
+            sets: v.number(),
+            reps: v.number(),
+            notes: v.optional(v.string()),
+          }),
+        ),
       }),
     ),
     status: v.union(v.literal("active"), v.literal("completed")),

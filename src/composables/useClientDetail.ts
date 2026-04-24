@@ -41,9 +41,7 @@ export function useClientDetail(clientId: string) {
   const completedChallenges = computed(() =>
     client.value?.challenges.filter((c) => c.status === 'completed') ?? [],
   )
-  const activePrograms = computed(() =>
-    programs.value?.filter((p) => p.status === 'active') ?? [],
-  )
+  const activePrograms = computed(() => programs.value ?? [])
 
   // Award XP
   const isAwarding = ref(false)
@@ -134,7 +132,7 @@ export function useClientDetail(clientId: string) {
 
   async function createProgram(
     title: string,
-    exercises: { name: string; sets: number; reps: number; notes?: string }[],
+    weeklySchedule: { day: number; type: string; exercises: { name: string; sets: number; reps: number; notes?: string }[] }[],
   ): Promise<boolean> {
     isCreatingProgram.value = true
     createProgramError.value = ''
@@ -143,7 +141,7 @@ export function useClientDetail(clientId: string) {
       await convex.mutation(api.programs.createProgram, {
         clientId: clientId as Id<'clients'>,
         title,
-        exercises,
+        weeklySchedule,
       })
       createProgramSuccess.value = true
       setTimeout(() => { createProgramSuccess.value = false }, 3000)
@@ -154,6 +152,14 @@ export function useClientDetail(clientId: string) {
     } finally {
       isCreatingProgram.value = false
     }
+  }
+
+  // Update Program Status
+  async function updateProgramStatus(programId: string, status: 'active' | 'completed'): Promise<void> {
+    await convex.mutation(api.programs.updateProgramStatus, {
+      programId: programId as Id<'programs'>,
+      status,
+    })
   }
 
   // Nutritionist access toggle
@@ -212,6 +218,7 @@ export function useClientDetail(clientId: string) {
       toggleNutritionistAccess,
       addChallenge,
       createProgram,
+      updateProgramStatus,
       updateGoal,
     },
   }

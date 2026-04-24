@@ -1,13 +1,14 @@
 import { ref } from 'vue'
 
+interface DaySchedule {
+  day: number
+  type: string
+  exercises: { name: string; sets: number; reps: number; notes?: string }[]
+}
+
 export interface AISuggestion {
   title: string
-  exercises: {
-    name: string
-    sets: number
-    reps: number
-    notes: string
-  }[]
+  weeklySchedule: DaySchedule[]
 }
 
 interface ClientAIPayload {
