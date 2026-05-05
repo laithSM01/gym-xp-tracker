@@ -15,7 +15,8 @@ interface ClientAIPayload {
   age: number
   goal: string
   height: number
-  sportType: string
+  sportTypes: string[]
+  injuryNotes: string
   trainerNotes: string
   currentXP: number
   currentTier: string

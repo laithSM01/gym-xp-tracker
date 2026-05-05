@@ -13,13 +13,17 @@ const {
   age,
   goal,
   height,
-  sportType,
+  sportTypes,
+  initialTier,
+  injuryNotes,
   weight,
   bodyFat,
   muscleMass,
   isFormValid,
   isSubmitting,
   submitError,
+  SPORT_TYPES,
+  TIER_OPTIONS,
 } = data
 </script>
 
@@ -118,7 +122,7 @@ const {
                   placeholder="175"
                 />
               </div>
-              <div>
+              <div class="col-span-2">
                 <label class="text-xs font-medium text-gray-600 mb-1 block">Goal</label>
                 <select
                   v-model="goal"
@@ -131,16 +135,62 @@ const {
                   </option>
                 </select>
               </div>
-              <div>
-                <label class="text-xs font-medium text-gray-600 mb-1 block">Sport Type</label>
-                <input
-                  v-model="sportType"
-                  type="text"
-                  required
-                  class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
-                  placeholder="e.g. Weightlifting"
-                />
+            </div>
+
+            <div class="mt-3">
+              <label class="text-xs font-medium text-gray-600 mb-2 block">
+                Sport Type <span class="text-gray-400 font-normal">— select up to 2</span>
+              </label>
+              <div class="flex gap-4">
+                <label
+                  v-for="type in SPORT_TYPES"
+                  :key="type"
+                  class="flex items-center gap-2 text-sm cursor-pointer"
+                  :class="sportTypes.length >= 2 && !sportTypes.includes(type) ? 'opacity-40 cursor-not-allowed' : ''"
+                >
+                  <input
+                    v-model="sportTypes"
+                    type="checkbox"
+                    :value="type"
+                    :disabled="sportTypes.length >= 2 && !sportTypes.includes(type)"
+                    class="w-4 h-4 rounded accent-purple-600"
+                  />
+                  <span class="capitalize text-gray-700">{{ type }}</span>
+                </label>
               </div>
+            </div>
+
+            <div class="mt-3">
+              <label class="text-xs font-medium text-gray-600 mb-2 block">Experience Level</label>
+              <div class="flex flex-col gap-2">
+                <label
+                  v-for="option in TIER_OPTIONS"
+                  :key="option.value"
+                  class="flex items-start gap-3 rounded-lg border border-gray-200 px-3 py-2.5 cursor-pointer hover:bg-gray-50 transition-colors"
+                  :class="initialTier === option.value ? 'border-purple-400 bg-purple-50' : ''"
+                >
+                  <input
+                    v-model="initialTier"
+                    type="radio"
+                    :value="option.value"
+                    class="mt-0.5 accent-purple-600 shrink-0"
+                  />
+                  <div>
+                    <p class="text-sm font-medium text-gray-800 capitalize">{{ option.value }}</p>
+                    <p class="text-xs text-gray-400">{{ option.label }}</p>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div class="mt-3">
+              <label class="text-xs font-medium text-gray-600 mb-1 block">Injury / Rehab Notes (optional)</label>
+              <textarea
+                v-model="injuryNotes"
+                rows="3"
+                class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none"
+                placeholder="e.g. left knee pain, avoid squats"
+              />
             </div>
           </div>
 

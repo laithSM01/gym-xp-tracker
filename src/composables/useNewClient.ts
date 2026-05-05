@@ -3,7 +3,9 @@ import { useRouter } from 'vue-router'
 import type { ConvexClient } from 'convex/browser'
 import { api } from '@convex/_generated/api'
 import type { Id } from '@convex/_generated/dataModel'
-import type { UnassignedUser } from '@/types/client'
+import type { UnassignedUser, SportType, Tier } from '@/types/client'
+import { SPORT_TYPES } from '@/constants/sports'
+import { TIER_OPTIONS } from '@/constants/tiers'
 
 export const GOAL_OPTIONS = [
   'Fat Loss',
@@ -51,7 +53,9 @@ export function useNewClient() {
   const age = ref('')
   const goal = ref<string>('')
   const height = ref('')
-  const sportType = ref('')
+  const sportTypes = ref<SportType[]>([])
+  const initialTier = ref<Tier | ''>('')
+  const injuryNotes = ref('')
   const weight = ref('')
   const bodyFat = ref('')
   const muscleMass = ref('')
@@ -66,7 +70,8 @@ export function useNewClient() {
     goal.value.trim() &&
     height.value &&
     parseFloat(height.value) > 0 &&
-    sportType.value.trim() &&
+    sportTypes.value.length >= 1 && sportTypes.value.length <= 2 &&
+    initialTier.value !== '' &&
     weight.value &&
     parseFloat(weight.value) > 0 &&
     bodyFat.value &&
@@ -85,7 +90,9 @@ export function useNewClient() {
         age: parseInt(age.value),
         goal: goal.value.trim(),
         height: parseFloat(height.value),
-        sportType: sportType.value.trim(),
+        sportTypes: sportTypes.value,
+        initialTier: initialTier.value as Tier,
+        injuryNotes: injuryNotes.value.trim() || undefined,
         initialWeight: parseFloat(weight.value),
         initialBodyFat: parseFloat(bodyFat.value),
         initialMuscleMass: parseFloat(muscleMass.value),
@@ -107,13 +114,17 @@ export function useNewClient() {
       age,
       goal,
       height,
-      sportType,
+      sportTypes,
+      initialTier,
+      injuryNotes,
       weight,
       bodyFat,
       muscleMass,
       isFormValid,
       isSubmitting,
       submitError,
+      SPORT_TYPES,
+      TIER_OPTIONS,
     },
     loading: computed(() => unassignedClients.value === null),
     error: null,

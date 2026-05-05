@@ -1,4 +1,7 @@
+import { SPORT_TYPES } from '@/constants/sports'
+
 export type Tier = 'beginner' | 'novice' | 'intermediate' | 'advanced' | 'elite'
+export type SportType = typeof SPORT_TYPES[number]
 
 export type Profile = {
   _id: string
@@ -58,7 +61,8 @@ export type TrainerClient = {
   isEnrolled: boolean
   age: number
   height: number
-  sportType: string
+  sportTypes: SportType[]
+  injuryNotes?: string
 }
 
 export type AccessibleClient = {
@@ -112,7 +116,8 @@ export type ClientDetail = {
   age: number
   goal: string
   height: number
-  sportType: string
+  sportTypes: SportType[]
+  injuryNotes?: string
   currentXP: number
   currentTier: Tier
   isEnrolled: boolean

@@ -137,7 +137,7 @@ function toggleDay(i: number) {
 
 function handleGetSuggestions() {
   if (!client.value || !aiPayload.value) return
-  if (!client.value?.height || !client.value?.sportType) {
+  if (!client.value?.height || !client.value?.sportTypes || client.value.sportTypes.length === 0) {
     aiError.value = 'Client profile is incomplete. Please update height and sport type.'
     return
   }
@@ -183,7 +183,8 @@ async function handleSaveProgram() {
                     d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828A2 2 0 0110 16H8v-2a2 2 0 01.586-1.414z" />
                 </svg>
               </button>
-              <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full ring-1 ring-gray-200 bg-gray-50 text-gray-600">
+              <span
+                class="text-xs font-semibold px-2.5 py-0.5 rounded-full ring-1 ring-gray-200 bg-gray-50 text-gray-600">
                 {{ client.sportType }}
               </span>
             </p>
@@ -470,10 +471,9 @@ async function handleSaveProgram() {
                   {{ new Date(program.startDate).toLocaleDateString() }} –
                   {{ new Date(program.endDate).toLocaleDateString() }}
                 </span>
-                <span class="shrink-0 text-xs font-medium px-2 py-0.5 rounded-full"
-                  :class="program.status === 'active'
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-gray-100 text-gray-500'">
+                <span class="shrink-0 text-xs font-medium px-2 py-0.5 rounded-full" :class="program.status === 'active'
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-gray-100 text-gray-500'">
                   {{ program.status === 'active' ? 'Active' : 'Completed' }}
                 </span>
                 <!-- Status toggle switch -->
@@ -500,19 +500,19 @@ async function handleSaveProgram() {
                       {{ day.exercises.length }} exercise{{ day.exercises.length !== 1 ? 's' : '' }}
                     </span>
                     <svg class="w-4 h-4 text-gray-400 transition-transform shrink-0"
-                      :class="{ 'rotate-180': isProgramDayOpen(program._id, di) }"
-                      fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      :class="{ 'rotate-180': isProgramDayOpen(program._id, di) }" fill="none" stroke="currentColor"
+                      viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
                   <div v-if="isProgramDayOpen(program._id, di)" class="divide-y divide-gray-50">
-                    <div v-for="(exercise, ei) in day.exercises" :key="ei"
-                      class="flex items-start gap-3 px-4 py-3">
+                    <div v-for="(exercise, ei) in day.exercises" :key="ei" class="flex items-start gap-3 px-4 py-3">
                       <div class="flex-1 min-w-0">
                         <p class="text-sm font-medium text-gray-800">{{ exercise.name }}</p>
                         <p v-if="exercise.notes" class="text-xs text-gray-400 mt-0.5">{{ exercise.notes }}</p>
                       </div>
-                      <span class="shrink-0 text-xs font-semibold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">
+                      <span
+                        class="shrink-0 text-xs font-semibold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">
                         {{ exercise.sets }} × {{ exercise.reps }}
                       </span>
                     </div>
@@ -531,7 +531,8 @@ async function handleSaveProgram() {
             <div class="flex items-start justify-between mb-3">
               <div>
                 <h2 class="text-base font-semibold text-gray-900">AI Workout Suggestions</h2>
-                <p class="text-xs text-gray-400 mt-0.5">Generated based on client's XP, tier, measurements, and goals</p>
+                <p class="text-xs text-gray-400 mt-0.5">Generated based on client's XP, tier, measurements, and goals
+                </p>
               </div>
             </div>
             <div class="mb-3">
@@ -565,7 +566,7 @@ async function handleSaveProgram() {
                 @click="toggleDay(i)">
                 <div class="flex items-center gap-2">
                   <span class="text-xs font-bold text-violet-600 bg-violet-100 px-2 py-0.5 rounded-full">Day {{ day.day
-                  }}</span>
+                    }}</span>
                   <span class="text-sm font-medium text-gray-800">{{ day.type }}</span>
                 </div>
                 <svg class="w-4 h-4 text-violet-400 transition-transform"

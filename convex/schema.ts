@@ -22,7 +22,8 @@ export default defineSchema({
     age: v.number(),
     goal: v.string(),
     height: v.number(),
-    sportType: v.string(),
+    sportTypes: v.array(v.union(v.literal('gym'), v.literal('swimming'), v.literal('boxing'))),
+    injuryNotes: v.optional(v.string()),
     isEnrolled: v.boolean(),
     currentXP: v.number(),
     currentTier: v.union(
