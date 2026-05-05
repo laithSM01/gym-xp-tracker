@@ -71,6 +71,8 @@ const mockClient: ClientDetail = {
   userName: 'Jane Doe',
   age: 28,
   goal: 'Build muscle',
+  height: 175,
+  sportType: 'Weightlifting',
   currentXP: 1200,
   currentTier: 'intermediate',
   isEnrolled: true,

@@ -57,6 +57,8 @@ export type TrainerClient = {
   goal: string
   isEnrolled: boolean
   age: number
+  height: number
+  sportType: string
 }
 
 export type AccessibleClient = {
@@ -109,6 +111,8 @@ export type ClientDetail = {
   userEmail?: string
   age: number
   goal: string
+  height: number
+  sportType: string
   currentXP: number
   currentTier: Tier
   isEnrolled: boolean

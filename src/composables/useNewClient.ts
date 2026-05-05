@@ -50,6 +50,8 @@ export function useNewClient() {
 
   const age = ref('')
   const goal = ref<string>('')
+  const height = ref('')
+  const sportType = ref('')
   const weight = ref('')
   const bodyFat = ref('')
   const muscleMass = ref('')
@@ -62,6 +64,9 @@ export function useNewClient() {
     age.value &&
     parseInt(age.value) > 0 &&
     goal.value.trim() &&
+    height.value &&
+    parseFloat(height.value) > 0 &&
+    sportType.value.trim() &&
     weight.value &&
     parseFloat(weight.value) > 0 &&
     bodyFat.value &&
@@ -79,6 +84,8 @@ export function useNewClient() {
         userId: selectedUserId.value as Id<'users'>,
         age: parseInt(age.value),
         goal: goal.value.trim(),
+        height: parseFloat(height.value),
+        sportType: sportType.value.trim(),
         initialWeight: parseFloat(weight.value),
         initialBodyFat: parseFloat(bodyFat.value),
         initialMuscleMass: parseFloat(muscleMass.value),
@@ -99,6 +106,8 @@ export function useNewClient() {
       search,
       age,
       goal,
+      height,
+      sportType,
       weight,
       bodyFat,
       muscleMass,

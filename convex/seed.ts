@@ -80,6 +80,8 @@ export const runSeed = internalMutation({
         trainerId: c.trainerId,
         age: c.age,
         goal: c.goal,
+        height: 170,
+        sportType: "gym",
         isEnrolled: true,
         currentXP: c.xp,
         currentTier: tierFromXP(c.xp),

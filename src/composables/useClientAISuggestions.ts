@@ -14,13 +14,16 @@ export interface AISuggestion {
 interface ClientAIPayload {
   age: number
   goal: string
+  height: number
+  sportType: string
+  trainerNotes: string
   currentXP: number
   currentTier: string
   measurements: object[]
   xpLogs: object[]
   currentExercises: string[]
-  completedChallenges: string[] // was number, now titles
-  pastPrograms: { title: string; exercises: string[] }[] // NEW
+  completedChallenges: string[]
+  pastPrograms: { title: string; exercises: string[] }[]
 }
 
 export function useClientAISuggestions() {

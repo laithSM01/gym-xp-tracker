@@ -51,6 +51,8 @@ const mockClient: ClientDetail = {
   userName: 'Alice',
   age: 30,
   goal: 'Lose fat',
+  height: 165,
+  sportType: 'General Fitness',
   currentXP: 800,
   currentTier: 'novice',
   isEnrolled: true,

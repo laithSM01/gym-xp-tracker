@@ -21,6 +21,8 @@ export default defineSchema({
     trainerId: v.id("users"),
     age: v.number(),
     goal: v.string(),
+    height: v.number(),
+    sportType: v.string(),
     isEnrolled: v.boolean(),
     currentXP: v.number(),
     currentTier: v.union(

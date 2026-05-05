@@ -43,6 +43,40 @@ export function useClientDetail(clientId: string) {
   )
   const activePrograms = computed(() => programs.value ?? [])
 
+  const trainerNotes = ref('')
+
+  const aiPayload = computed(() => {
+    if (!client.value) return null
+    const active = activePrograms.value.find((p) => p.status === 'active')
+    const past = activePrograms.value.filter((p) => p.status === 'completed')
+    return {
+      age: client.value.age,
+      goal: client.value.goal,
+      height: client.value.height,
+      sportType: client.value.sportType,
+      trainerNotes: trainerNotes.value,
+      currentXP: client.value.currentXP,
+      currentTier: client.value.currentTier,
+      measurements: (measurements.value ?? []).map((m) => ({
+        weight: m.weight,
+        bodyFat: m.bodyFat,
+        muscleMass: m.muscleMass,
+      })),
+      xpLogs: (client.value.xpLogs ?? []).map((l) => ({
+        amount: l.amount,
+        reason: l.reason,
+      })),
+      currentExercises: [...new Set(active?.weeklySchedule?.flatMap((d) => d.exercises.map((e) => e.name)) ?? [])],
+      completedChallenges: (client.value.challenges ?? [])
+        .filter((c) => c.status === 'completed')
+        .map((c) => c.title),
+      pastPrograms: past.slice(0, 3).map((p) => ({
+        title: p.title,
+        exercises: p.weeklySchedule?.flatMap((d) => d.exercises.map((e) => e.name)),
+      })),
+    }
+  })
+
   // Award XP
   const isAwarding = ref(false)
   const awardError = ref('')
@@ -209,6 +243,8 @@ export function useClientDetail(clientId: string) {
       createProgramError,
       createProgramSuccess,
       activePrograms,
+      trainerNotes,
+      aiPayload,
     },
     loading: computed(() => client.value === null),
     error: null,

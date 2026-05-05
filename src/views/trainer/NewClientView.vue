@@ -12,6 +12,8 @@ const {
   search,
   age,
   goal,
+  height,
+  sportType,
   weight,
   bodyFat,
   muscleMass,
@@ -105,6 +107,18 @@ const {
                 />
               </div>
               <div>
+                <label class="text-xs font-medium text-gray-600 mb-1 block">Height (cm)</label>
+                <input
+                  v-model="height"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  required
+                  class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  placeholder="175"
+                />
+              </div>
+              <div>
                 <label class="text-xs font-medium text-gray-600 mb-1 block">Goal</label>
                 <select
                   v-model="goal"
@@ -116,6 +130,16 @@ const {
                     {{ option }}
                   </option>
                 </select>
+              </div>
+              <div>
+                <label class="text-xs font-medium text-gray-600 mb-1 block">Sport Type</label>
+                <input
+                  v-model="sportType"
+                  type="text"
+                  required
+                  class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  placeholder="e.g. Weightlifting"
+                />
               </div>
             </div>
           </div>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useClientDetail } from '@/composables/useClientDetail'
 import { useClientAISuggestions } from '@/composables/useClientAISuggestions'
@@ -33,6 +33,8 @@ const {
   createProgramError,
   createProgramSuccess,
   activePrograms,
+  trainerNotes,
+  aiPayload,
 } = data
 
 // Edit Goal modal state
@@ -133,37 +135,12 @@ function toggleDay(i: number) {
   else openDayIndices.value.splice(idx, 1)
 }
 
-const aiPayload = computed(() => {
-  const active = activePrograms.value?.find(p => p.status === 'active')
-  const past = activePrograms.value?.filter(p => p.status === 'completed') ?? []
-
-  return {
-    age: client.value!.age,
-    goal: client.value!.goal,
-    currentXP: client.value!.currentXP,
-    currentTier: client.value!.currentTier,
-    measurements: (measurements.value ?? []).map(m => ({
-      weight: m.weight,
-      bodyFat: m.bodyFat,
-      muscleMass: m.muscleMass,
-    })),
-    xpLogs: (client.value!.xpLogs ?? []).map(l => ({
-      amount: l.amount,
-      reason: l.reason,
-    })),
-    currentExercises: [...new Set(active?.weeklySchedule?.flatMap(d => d.exercises.map(e => e.name)) ?? [])],
-    completedChallenges: (client.value!.challenges ?? [])
-      .filter(c => c.status === 'completed')
-      .map(c => c.title),
-    pastPrograms: past.slice(0, 3).map(p => ({
-      title: p.title,
-      exercises: p.weeklySchedule?.flatMap(d => d.exercises.map(e => e.name)),
-    })),
-  }
-})
-
 function handleGetSuggestions() {
-  if (!client.value) return
+  if (!client.value || !aiPayload.value) return
+  if (!client.value?.height || !client.value?.sportType) {
+    aiError.value = 'Client profile is incomplete. Please update height and sport type.'
+    return
+  }
   openDayIndices.value = []
   fetchSuggestions(aiPayload.value)
 }
@@ -206,6 +183,9 @@ async function handleSaveProgram() {
                     d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828A2 2 0 0110 16H8v-2a2 2 0 01.586-1.414z" />
                 </svg>
               </button>
+              <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full ring-1 ring-gray-200 bg-gray-50 text-gray-600">
+                {{ client.sportType }}
+              </span>
             </p>
           </div>
           <div class="flex items-center gap-3 shrink-0">
@@ -547,13 +527,21 @@ async function handleSaveProgram() {
       <!-- AI Workout Suggestions -->
       <div class="mt-6">
         <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <h2 class="text-base font-semibold text-gray-900">AI Workout Suggestions</h2>
-              <p class="text-xs text-gray-400 mt-0.5">Generated based on client's XP, tier, measurements, and goals</p>
+          <div class="mb-4">
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <h2 class="text-base font-semibold text-gray-900">AI Workout Suggestions</h2>
+                <p class="text-xs text-gray-400 mt-0.5">Generated based on client's XP, tier, measurements, and goals</p>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="text-xs font-medium text-gray-500 mb-1 block">Trainer Notes (optional)</label>
+              <textarea v-model="trainerNotes" rows="2"
+                class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 resize-none"
+                placeholder="e.g. Client has lower back pain, avoid deadlifts this week" />
             </div>
             <button :disabled="isAILoading"
-              class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
+              class="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               @click="handleGetSuggestions">
               <svg v-if="isAILoading" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
