@@ -41,3 +41,5 @@ __screenshots__/
 # Convex
 .env.local
 convex/.env.local
+convex/.env/local
+convex/_generated/
