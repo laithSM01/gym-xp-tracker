@@ -51,9 +51,13 @@ export function useNewClient() {
   }
 
   const age = ref('')
+  const gender = ref<'male' | 'female' | ''>('')
   const goal = ref<string>('')
   const height = ref('')
+  const city = ref('')
   const sportTypes = ref<SportType[]>([])
+  const preferredTrainingDays = ref<'2-3' | '3-4' | '4-5' | '5-6' | ''>('')
+  const healthConditions = ref<string[]>([])
   const initialTier = ref<Tier | ''>('')
   const injuryNotes = ref('')
   const weight = ref('')
@@ -67,10 +71,13 @@ export function useNewClient() {
     selectedUserId.value &&
     age.value &&
     parseInt(age.value) > 0 &&
+    gender.value !== '' &&
     goal.value.trim() &&
     height.value &&
     parseFloat(height.value) > 0 &&
+    city.value.trim() &&
     sportTypes.value.length >= 1 && sportTypes.value.length <= 2 &&
+    preferredTrainingDays.value !== '' &&
     initialTier.value !== '' &&
     weight.value &&
     parseFloat(weight.value) > 0 &&
@@ -88,9 +95,13 @@ export function useNewClient() {
       const clientId = await convex.mutation(api.clients.createClient, {
         userId: selectedUserId.value as Id<'users'>,
         age: parseInt(age.value),
+        gender: gender.value as 'male' | 'female',
         goal: goal.value.trim(),
         height: parseFloat(height.value),
+        city: city.value.trim(),
         sportTypes: sportTypes.value,
+        preferredTrainingDays: preferredTrainingDays.value as '2-3' | '3-4' | '4-5' | '5-6',
+        healthConditions: healthConditions.value,
         initialTier: initialTier.value as Tier,
         injuryNotes: injuryNotes.value.trim() || undefined,
         initialWeight: parseFloat(weight.value),
@@ -112,9 +123,13 @@ export function useNewClient() {
       selectedUserId,
       search,
       age,
+      gender,
       goal,
       height,
+      city,
       sportTypes,
+      preferredTrainingDays,
+      healthConditions,
       initialTier,
       injuryNotes,
       weight,

@@ -45,9 +45,9 @@ vi.mock('vue', async (importOriginal) => {
 // ---------------------------------------------------------------------------
 
 const mockClients: TrainerClient[] = [
-  { _id: 'c1', userName: 'Alice', currentTier: 'novice', currentXP: 500, goal: 'Lose weight', isEnrolled: true, age: 28, height: 165, sportType: 'Running' },
-  { _id: 'c2', userName: 'Bob', currentTier: 'intermediate', currentXP: 1200, goal: 'Build muscle', isEnrolled: false, age: 32, height: 180, sportType: 'Weightlifting' },
-  { _id: 'c3', userName: 'Carol', currentTier: 'beginner', currentXP: 100, goal: 'Stay fit', isEnrolled: true, age: 24, height: 170, sportType: 'General Fitness' },
+  { _id: 'c1', userName: 'Alice', currentTier: 'novice', currentXP: 500, goal: 'Lose weight', isEnrolled: true, age: 28, height: 165, sportTypes: ['running'] },
+  { _id: 'c2', userName: 'Bob', currentTier: 'intermediate', currentXP: 1200, goal: 'Build muscle', isEnrolled: false, age: 32, height: 180, sportTypes: ['gym'] },
+  { _id: 'c3', userName: 'Carol', currentTier: 'beginner', currentXP: 100, goal: 'Stay fit', isEnrolled: true, age: 24, height: 170, sportTypes: ['gym'] },
 ]
 
 // ---------------------------------------------------------------------------

@@ -5,6 +5,9 @@ import { clerkPlugin } from '@clerk/vue'
 import { ConvexClient } from 'convex/browser'
 import router from './router'
 import App from './App.vue'
+import { ConvexGymsService } from './services/convex/gyms.convex'
+import { ConvexTrainersService } from './services/convex/trainers.convex'
+import { ConvexClientsService } from './services/convex/clients.convex'
 
 const convex = new ConvexClient(import.meta.env.VITE_CONVEX_URL)
 
@@ -16,5 +19,8 @@ app.use(clerkPlugin, {
   publishableKey: import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
 })
 app.provide('convex', convex)
+app.provide('gymsService', new ConvexGymsService(convex))
+app.provide('trainersService', new ConvexTrainersService(convex))
+app.provide('clientsService', new ConvexClientsService(convex))
 
 app.mount('#app')

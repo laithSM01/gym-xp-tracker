@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 
-export type UserRole = 'trainer' | 'client' | 'nutritionist' | 'gym_owner'
+export type UserRole = 'trainer' | 'gym_trainer' | 'client' | 'nutritionist' | 'gym_owner'
 
 export interface ConvexUser {
   _id: string

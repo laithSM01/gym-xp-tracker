@@ -1,7 +1,18 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
+import { watch, inject } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
 import { useTrainerDashboard } from '@/composables/useTrainerDashboard'
 import { tierConfig, tierMax, xpProgress } from '@/utils/xp'
+import type { TrainerService } from '@/services/trainers.service'
+
+const trainersService = inject<TrainerService>('trainersService')!
+const router = useRouter()
+const trainerProfile = trainersService.getMyTrainerProfile()
+
+// Redirect to setup if no trainer profile exists yet
+watch(trainerProfile, (val) => {
+  if (val === null) router.replace('/trainer/setup')
+}, { immediate: true })
 
 const { data } = useTrainerDashboard()
 const { clients, trainerName, enrolledCount } = data

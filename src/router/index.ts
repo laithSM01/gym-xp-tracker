@@ -24,6 +24,11 @@ const router = createRouter({
       path: '/onboarding',
       component: () => import('@/views/OnboardingView.vue'),
     },
+    // Public invite route — accessible without auth
+    {
+      path: '/invite/gym',
+      component: () => import('@/views/public/InviteAcceptView.vue'),
+    },
     // Authenticated routes
     {
       path: '/',
@@ -42,8 +47,16 @@ const router = createRouter({
           component: () => import('@/views/trainer/NewClientView.vue'),
         },
         {
+          path: 'trainer/setup',
+          component: () => import('@/views/trainer/TrainerSetupView.vue'),
+        },
+        {
           path: 'client/dashboard',
           component: () => import('@/views/client/ClientDashboardView.vue'),
+        },
+        {
+          path: 'client/setup',
+          component: () => import('@/views/client/ClientSetupView.vue'),
         },
         {
           path: 'nutritionist/dashboard',
@@ -57,6 +70,14 @@ const router = createRouter({
           path: 'gym/dashboard',
           component: () => import('@/views/gym/GymDashboardView.vue'),
         },
+        {
+          path: 'gym/setup',
+          component: () => import('@/views/gym/GymSetupView.vue'),
+        },
+        {
+          path: 'gym-trainer/dashboard',
+          component: () => import('@/views/gym-trainer/GymTrainerDashboardView.vue'),
+        },
       ],
     },
   ],
@@ -64,6 +85,7 @@ const router = createRouter({
 
 const roleDashboard: Record<string, string> = {
   trainer: '/trainer/dashboard',
+  gym_trainer: '/gym-trainer/dashboard',
   client: '/client/dashboard',
   nutritionist: '/nutritionist/dashboard',
   gym_owner: '/gym/dashboard',
@@ -71,12 +93,13 @@ const roleDashboard: Record<string, string> = {
 
 const rolePrefix: Record<string, string> = {
   trainer: '/trainer/',
+  gym_trainer: '/gym-trainer/',
   client: '/client/',
   nutritionist: '/nutritionist/',
   gym_owner: '/gym/',
 }
 
-const PUBLIC_PATHS = ['/', '/sign-in', '/onboarding']
+const PUBLIC_PATHS = ['/', '/sign-in', '/onboarding', '/invite/gym']
 
 router.beforeEach(async (to) => {
   const authStore = useAuthStore()

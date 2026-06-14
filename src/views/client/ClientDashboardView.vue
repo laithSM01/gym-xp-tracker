@@ -1,5 +1,17 @@
 <script setup lang="ts">
+import { watch, inject } from 'vue'
+import { useRouter } from 'vue-router'
 import { useClientDashboard, tierConfig, tierMin, tierMax, xpProgress, formatDate } from '@/composables/useClientDashboard'
+import type { ClientService } from '@/services/clients.service'
+
+const clientsService = inject<ClientService>('clientsService')!
+const router = useRouter()
+const clientProfile = clientsService.getMyProfile()
+
+// Redirect to setup if client has not created their profile yet
+watch(clientProfile, (val) => {
+  if (val === null) router.replace('/client/setup')
+}, { immediate: true })
 
 const { data, loading: isLoading, actions } = useClientDashboard()
 const { profile, challenges, nutritionPlan, programs, recentMeasurements, completingChallengeId } = data
@@ -154,17 +166,14 @@ const { profile, challenges, nutritionPlan, programs, recentMeasurements, comple
                 </div>
                 <div class="divide-y divide-gray-50">
                   <div
-                    v-for="(exercise, i) in program.exercises"
+                    v-for="(day, i) in program.weeklySchedule"
                     :key="i"
                     class="flex items-start gap-3 px-4 py-3"
                   >
                     <div class="flex-1 min-w-0">
-                      <p class="text-sm font-medium text-gray-800">{{ exercise.name }}</p>
-                      <p v-if="exercise.notes" class="text-xs text-gray-400 mt-0.5">{{ exercise.notes }}</p>
+                      <p class="text-sm font-medium text-gray-800">Day {{ day.day }} — {{ day.type }}</p>
+                      <p class="text-xs text-gray-400 mt-0.5">{{ day.exercises.length }} exercise{{ day.exercises.length !== 1 ? 's' : '' }}</p>
                     </div>
-                    <span class="shrink-0 text-xs font-semibold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">
-                      {{ exercise.sets }} × {{ exercise.reps }}
-                    </span>
                   </div>
                 </div>
               </div>

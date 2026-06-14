@@ -98,7 +98,7 @@ function formatPriceRange(min: number, max: number): string {
           <div>
             <h3 class="font-bold text-gray-900 leading-tight">{{ trainer.name }}</h3>
             <span class="text-xs text-gray-500">
-              {{ trainer.isIndependent ? 'Independent' : 'Gym-affiliated' }}
+              Personal Trainer
               <template v-if="trainer.yearsOfExperience">
                 · {{ trainer.yearsOfExperience }}y exp
               </template>

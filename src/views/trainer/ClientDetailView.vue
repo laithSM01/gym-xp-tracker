@@ -185,7 +185,7 @@ async function handleSaveProgram() {
               </button>
               <span
                 class="text-xs font-semibold px-2.5 py-0.5 rounded-full ring-1 ring-gray-200 bg-gray-50 text-gray-600">
-                {{ client.sportType }}
+                {{ client.sportTypes.join(', ') }}
               </span>
             </p>
           </div>
