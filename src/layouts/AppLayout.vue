@@ -12,12 +12,14 @@ const roleLabel: Record<UserRole, string> = {
   trainer: 'Trainer',
   client: 'Client',
   nutritionist: 'Nutritionist',
+  gym_owner: 'Gym Owner',
 }
 
 const roleBadgeClass: Record<UserRole, string> = {
   trainer: 'bg-purple-100 text-purple-700 ring-purple-200',
   client: 'bg-teal-100 text-teal-700 ring-teal-200',
   nutritionist: 'bg-amber-100 text-amber-700 ring-amber-200',
+  gym_owner: 'bg-blue-100 text-blue-700 ring-blue-200',
 }
 </script>
 

@@ -4,6 +4,18 @@ import { useAuthStore } from '@/stores/auth'
 const router = createRouter({
   history: createWebHistory(),
   routes: [
+    // Public routes — no auth required
+    {
+      path: '/',
+      component: () => import('@/layouts/PublicLayout.vue'),
+      children: [
+        {
+          path: '',
+          name: 'landing',
+          component: () => import('@/views/public/LandingView.vue'),
+        },
+      ],
+    },
     {
       path: '/sign-in',
       component: () => import('@/layouts/AuthLayout.vue'),
@@ -12,6 +24,7 @@ const router = createRouter({
       path: '/onboarding',
       component: () => import('@/views/OnboardingView.vue'),
     },
+    // Authenticated routes
     {
       path: '/',
       component: () => import('@/layouts/AppLayout.vue'),
@@ -40,6 +53,10 @@ const router = createRouter({
           path: 'nutritionist/client/:clientId',
           component: () => import('@/views/nutritionist/ClientNutritionView.vue'),
         },
+        {
+          path: 'gym/dashboard',
+          component: () => import('@/views/gym/GymDashboardView.vue'),
+        },
       ],
     },
   ],
@@ -49,33 +66,43 @@ const roleDashboard: Record<string, string> = {
   trainer: '/trainer/dashboard',
   client: '/client/dashboard',
   nutritionist: '/nutritionist/dashboard',
+  gym_owner: '/gym/dashboard',
 }
 
 const rolePrefix: Record<string, string> = {
   trainer: '/trainer/',
   client: '/client/',
   nutritionist: '/nutritionist/',
+  gym_owner: '/gym/',
 }
+
+const PUBLIC_PATHS = ['/', '/sign-in', '/onboarding']
 
 router.beforeEach(async (to) => {
   const authStore = useAuthStore()
   await authStore.waitForLoad()
 
-  if (!authStore.isSignedIn && to.path !== '/sign-in' && to.path !== '/onboarding') {
+  // Public paths are always accessible
+  if (PUBLIC_PATHS.includes(to.path)) {
+    // Signed-in users on / or /sign-in redirect to their dashboard
+    if (authStore.isSignedIn && (to.path === '/' || to.path === '/sign-in')) {
+      await authStore.waitForUser()
+      const role = authStore.convexUser?.role
+      return role ? roleDashboard[role] : '/onboarding'
+    }
+    return true
+  }
+
+  // All other routes require auth
+  if (!authStore.isSignedIn) {
     return '/sign-in'
   }
 
-  if (authStore.isSignedIn && (to.path === '/sign-in' || to.path === '/')) {
-    await authStore.waitForUser()
-    const role = authStore.convexUser?.role
-    return role ? roleDashboard[role] : '/onboarding'
-  }
-
+  // Prevent cross-role navigation
   if (authStore.isSignedIn) {
     await authStore.waitForUser()
     const role = authStore.convexUser?.role
     if (role) {
-      // If navigating to a role-prefixed route that doesn't belong to this role, redirect
       for (const [r, prefix] of Object.entries(rolePrefix)) {
         if (to.path.startsWith(prefix) && r !== role) {
           return roleDashboard[role]
