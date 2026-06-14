@@ -2,7 +2,7 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
-  // ─── Existing tables ────────────────────────────────────────────────────────
+  // ─── Core tables ─────────────────────────────────────────────────────────────
 
   users: defineTable({
     tokenIdentifier: v.string(),
@@ -10,7 +10,8 @@ export default defineSchema({
     name: v.optional(v.string()),
     email: v.optional(v.string()),
     role: v.union(
-      v.literal("trainer"),
+      v.literal("trainer"),      // personal trainer — independent, marketplace listing
+      v.literal("gym_trainer"),  // gym staff — invited by gym owner, works within one gym
       v.literal("client"),
       v.literal("nutritionist"),
       v.literal("gym_owner"),
@@ -20,12 +21,28 @@ export default defineSchema({
 
   clients: defineTable({
     userId: v.id("users"),
-    trainerId: v.optional(v.id("users")), // optional — gym-assigned clients may not have a trainer yet
-    gymId: v.optional(v.id("gyms")),
+    trainerId: v.optional(v.id("users")), // set when a personal trainer adds this client
+    gymId: v.optional(v.id("gyms")),      // set when a gym adds this client
     age: v.number(),
+    gender: v.union(v.literal("male"), v.literal("female")),
     goal: v.string(),
     height: v.number(),
-    sportTypes: v.array(v.union(v.literal("gym"), v.literal("swimming"), v.literal("boxing"))),
+    city: v.string(),
+    sportTypes: v.array(v.union(
+      v.literal("gym"),
+      v.literal("swimming"),
+      v.literal("boxing"),
+      v.literal("football"),
+      v.literal("running"),
+      v.literal("crossfit"),
+    )),
+    preferredTrainingDays: v.union(
+      v.literal("2-3"),
+      v.literal("3-4"),
+      v.literal("4-5"),
+      v.literal("5-6"),
+    ),
+    healthConditions: v.array(v.string()),
     injuryNotes: v.optional(v.string()),
     isEnrolled: v.boolean(),
     currentXP: v.number(),
@@ -42,6 +59,7 @@ export default defineSchema({
     .index("by_userId", ["userId"])
     .index("by_trainerId", ["trainerId"])
     .index("by_gymId", ["gymId"])
+    .index("by_city", ["city"])
     .index("by_trainerId_and_isEnrolled", ["trainerId", "isEnrolled"]),
 
   challenges: defineTable({
@@ -95,7 +113,7 @@ export default defineSchema({
 
   bodyMeasurements: defineTable({
     clientId: v.id("clients"),
-    trainerId: v.id("users"),
+    trainerId: v.optional(v.id("users")), // optional — clients log their own initial measurement
     weight: v.number(),
     bodyFat: v.number(),
     muscleMass: v.number(),
@@ -123,7 +141,7 @@ export default defineSchema({
     .index("by_clientId", ["clientId"])
     .index("by_nutritionistId", ["nutritionistId"]),
 
-  // ─── Marketplace tables ──────────────────────────────────────────────────────
+  // ─── Marketplace tables ───────────────────────────────────────────────────────
 
   gyms: defineTable({
     ownerId: v.id("users"), // role === "gym_owner"
@@ -136,6 +154,10 @@ export default defineSchema({
     facilities: v.array(v.string()),
     priceRange: v.object({ min: v.number(), max: v.number() }),
     isActive: v.boolean(),
+    // Lifetime usage counters — never decrement
+    trainersUsed: v.number(),
+    clientsAdded: v.number(),
+    productsListed: v.number(),
     createdAt: v.number(),
   })
     .index("by_ownerId", ["ownerId"])
@@ -148,11 +170,13 @@ export default defineSchema({
     certifications: v.array(v.string()),
     specializations: v.array(v.string()),
     yearsOfExperience: v.optional(v.number()),
-    isIndependent: v.boolean(),
     profilePhotoStorageId: v.optional(v.id("_storage")),
     coverPhotoStorageId: v.optional(v.id("_storage")),
     instagramHandle: v.optional(v.string()),
     isActive: v.boolean(),
+    // Lifetime usage counters — never decrement
+    clientsAdded: v.number(),
+    productsListed: v.number(),
     createdAt: v.number(),
   })
     .index("by_userId", ["userId"])
@@ -162,9 +186,10 @@ export default defineSchema({
     gymId: v.optional(v.id("gyms")),
     trainerProfileId: v.optional(v.id("personalTrainers")),
     plan: v.union(
-      v.literal("trainer_solo"),
-      v.literal("gym_starter"),
-      v.literal("gym_pro"),
+      v.literal("personal_trainer"),
+      v.literal("gym_small"),
+      v.literal("gym_medium"),
+      v.literal("gym_large"),
     ),
     status: v.union(
       v.literal("active"),
@@ -173,7 +198,7 @@ export default defineSchema({
     ),
     currentPeriodEnd: v.number(),
     aiGenerationsUsed: v.number(),
-    aiGenerationsLimit: v.number(), // 50 | 200 | -1 = unlimited
+    aiGenerationsLimit: v.number(), // -1 = unlimited
     pricePaidJod: v.number(),
     createdAt: v.number(),
   })
@@ -223,6 +248,11 @@ export default defineSchema({
     clientUserId: v.id("users"),
     gymId: v.optional(v.id("gyms")),
     trainerProfileId: v.optional(v.id("personalTrainers")),
+    initiatedBy: v.union(
+      v.literal("client"),
+      v.literal("gym"),
+      v.literal("personal_trainer"),
+    ),
     status: v.union(
       v.literal("pending"),
       v.literal("approved"),
@@ -239,13 +269,34 @@ export default defineSchema({
     .index("by_trainerProfileId_and_status", ["trainerProfileId", "status"]),
 
   trainerGymAffiliation: defineTable({
-    trainerProfileId: v.id("personalTrainers"),
+    gymTrainerUserId: v.id("users"), // role === "gym_trainer"
     gymId: v.id("gyms"),
     affiliationRole: v.union(v.literal("trainer"), v.literal("head_trainer")),
+    inviteId: v.id("gymInvitations"),
     joinedAt: v.number(),
     isActive: v.boolean(),
   })
-    .index("by_trainerProfileId", ["trainerProfileId"])
+    .index("by_gymTrainerUserId", ["gymTrainerUserId"])
     .index("by_gymId", ["gymId"])
     .index("by_gymId_and_isActive", ["gymId", "isActive"]),
+
+  gymInvitations: defineTable({
+    gymId: v.id("gyms"),
+    invitedEmail: v.string(),
+    invitedName: v.string(),
+    inviteToken: v.string(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("accepted"),
+      v.literal("expired"),
+    ),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+    acceptedAt: v.optional(v.number()),
+    acceptedByUserId: v.optional(v.id("users")),
+  })
+    .index("by_token", ["inviteToken"])
+    .index("by_gymId", ["gymId"])
+    .index("by_gymId_and_status", ["gymId", "status"])
+    .index("by_email", ["invitedEmail"]),
 });
