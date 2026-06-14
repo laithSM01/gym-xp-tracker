@@ -1,6 +1,6 @@
 import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
-import { Id } from "./_generated/dataModel";
+import type { Id } from "./_generated/dataModel";
 
 type Tier = "beginner" | "novice" | "intermediate" | "advanced" | "elite";
 
@@ -37,7 +37,7 @@ export const runSeed = internalMutation({
       trainerIds.push(id);
     }
 
-    const [ahmed, sara, omar] = trainerIds;
+    const [ahmed, sara, omar] = trainerIds as [Id<"users">, Id<"users">, Id<"users">];
 
     // ── Clients (10 total: 4 Ahmed, 3 Sara, 3 Omar) ─────────────────────────
     const clientUserData: {
@@ -79,13 +79,18 @@ export const runSeed = internalMutation({
         userId,
         trainerId: c.trainerId,
         age: c.age,
+        gender: "male" as const,
         goal: c.goal,
         height: 170,
+        city: "Amman",
         sportTypes: ["gym"],
+        preferredTrainingDays: "3-4" as const,
+        healthConditions: [],
         injuryNotes: undefined,
         isEnrolled: true,
         currentXP: c.xp,
         currentTier: tierFromXP(c.xp),
+        nutritionistAccess: false,
         createdAt: now,
       });
 
@@ -107,12 +112,12 @@ export const runSeed = internalMutation({
     ];
 
     for (let i = 0; i < clientIds.length; i++) {
-      const clientId = clientIds[i];
-      const trainerId = clientUserData[i].trainerId;
+      const clientId = clientIds[i]!;
+      const trainerId = clientUserData[i]!.trainerId;
 
       // Pick 3 challenge templates rotating through the list
       for (let j = 0; j < 3; j++) {
-        const template = challengeTemplates[(i * 3 + j) % challengeTemplates.length];
+        const template = challengeTemplates[(i * 3 + j) % challengeTemplates.length]!;
         // Mix statuses: first challenge completed, rest pending (with variation)
         const isCompleted = j === 0 || (i % 3 === 0 && j === 1);
 
@@ -143,9 +148,10 @@ export const runSeed = internalMutation({
     ];
 
     for (let i = 0; i < clientIds.length; i++) {
-      const clientId = clientIds[i];
-      const trainerId = clientUserData[i].trainerId;
-      const totalXP = clientUserData[i].xp;
+      const clientId = clientIds[i]!;
+      const entry = clientUserData[i]!;
+      const trainerId = entry.trainerId;
+      const totalXP = entry.xp;
 
       // Split XP across 2 log entries (70% / 30%)
       const firstAmount = Math.round(totalXP * 0.7);
@@ -154,7 +160,7 @@ export const runSeed = internalMutation({
       await ctx.db.insert("xpLogs", {
         clientId,
         amount: firstAmount,
-        reason: xpLogReasons[(i * 2) % xpLogReasons.length],
+        reason: xpLogReasons[(i * 2) % xpLogReasons.length]!,
         awardedBy: trainerId,
         createdAt: now - 1000 * 60 * 60 * 24 * 14,
       });
@@ -162,7 +168,7 @@ export const runSeed = internalMutation({
       await ctx.db.insert("xpLogs", {
         clientId,
         amount: secondAmount,
-        reason: xpLogReasons[(i * 2 + 1) % xpLogReasons.length],
+        reason: xpLogReasons[(i * 2 + 1) % xpLogReasons.length]!,
         awardedBy: trainerId,
         createdAt: now - 1000 * 60 * 60 * 24 * 3,
       });

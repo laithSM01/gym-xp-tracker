@@ -200,20 +200,40 @@ export const getUnassignedClients = query({
   },
 });
 
+const SPORT_TYPES_VALIDATOR = v.array(v.union(
+  v.literal("gym"),
+  v.literal("swimming"),
+  v.literal("boxing"),
+  v.literal("football"),
+  v.literal("running"),
+  v.literal("crossfit"),
+));
+
+const TIER_VALIDATOR = v.union(
+  v.literal("beginner"),
+  v.literal("novice"),
+  v.literal("intermediate"),
+  v.literal("advanced"),
+  v.literal("elite"),
+);
+
 export const createClient = mutation({
   args: {
     userId: v.id("users"),
     age: v.number(),
+    gender: v.union(v.literal("male"), v.literal("female")),
     goal: v.string(),
     height: v.number(),
-    sportTypes: v.array(v.union(v.literal('gym'), v.literal('swimming'), v.literal('boxing'))),
-    initialTier: v.union(
-      v.literal('beginner'),
-      v.literal('novice'),
-      v.literal('intermediate'),
-      v.literal('advanced'),
-      v.literal('elite'),
+    city: v.string(),
+    sportTypes: SPORT_TYPES_VALIDATOR,
+    preferredTrainingDays: v.union(
+      v.literal("2-3"),
+      v.literal("3-4"),
+      v.literal("4-5"),
+      v.literal("5-6"),
     ),
+    healthConditions: v.array(v.string()),
+    initialTier: TIER_VALIDATOR,
     injuryNotes: v.optional(v.string()),
     initialWeight: v.number(),
     initialBodyFat: v.number(),
@@ -235,14 +255,17 @@ export const createClient = mutation({
     if (!targetUser) throw new Error("User not found");
     if (targetUser.role !== "client") throw new Error("User is not a client");
 
-    // Create the client record
     const clientId: Id<"clients"> = await ctx.db.insert("clients", {
       userId: args.userId,
       trainerId: trainer._id,
       age: args.age,
+      gender: args.gender,
       goal: args.goal,
       height: args.height,
+      city: args.city,
       sportTypes: args.sportTypes,
+      preferredTrainingDays: args.preferredTrainingDays,
+      healthConditions: args.healthConditions,
       injuryNotes: args.injuryNotes,
       isEnrolled: true,
       currentXP: 0,
@@ -251,13 +274,94 @@ export const createClient = mutation({
       createdAt: Date.now(),
     });
 
-    // Save baseline measurement (no XP — this is just intake data)
     await ctx.db.insert("bodyMeasurements", {
       clientId,
       trainerId: trainer._id,
       weight: args.initialWeight,
       bodyFat: args.initialBodyFat,
       muscleMass: args.initialMuscleMass,
+      timestamp: Date.now(),
+    });
+
+    return clientId;
+  },
+});
+
+const EXP_TO_TIER: Record<string, "beginner" | "novice" | "intermediate" | "advanced"> = {
+  beginner: "beginner",
+  some_experience: "novice",
+  intermediate: "intermediate",
+  advanced: "advanced",
+};
+
+export const createMyProfile = mutation({
+  args: {
+    age: v.number(),
+    gender: v.union(v.literal("male"), v.literal("female")),
+    goal: v.string(),
+    height: v.number(),
+    weight: v.number(),
+    city: v.string(),
+    sportTypes: SPORT_TYPES_VALIDATOR,
+    trainingExperience: v.union(
+      v.literal("beginner"),
+      v.literal("some_experience"),
+      v.literal("intermediate"),
+      v.literal("advanced"),
+    ),
+    preferredTrainingDays: v.union(
+      v.literal("2-3"),
+      v.literal("3-4"),
+      v.literal("4-5"),
+      v.literal("5-6"),
+    ),
+    healthConditions: v.array(v.string()),
+    injuryNotes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+    if (!user) throw new Error("User not found");
+    if (user.role !== "client") throw new Error("Only clients can create a client profile");
+
+    const existing = await ctx.db
+      .query("clients")
+      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .unique();
+    if (existing) throw new Error("You already have a client profile");
+
+    const initialTier = EXP_TO_TIER[args.trainingExperience] ?? "beginner";
+
+    const clientId: Id<"clients"> = await ctx.db.insert("clients", {
+      userId: user._id,
+      age: args.age,
+      gender: args.gender,
+      goal: args.goal,
+      height: args.height,
+      city: args.city,
+      sportTypes: args.sportTypes,
+      preferredTrainingDays: args.preferredTrainingDays,
+      healthConditions: args.healthConditions,
+      injuryNotes: args.injuryNotes,
+      isEnrolled: false,
+      currentXP: 0,
+      currentTier: initialTier,
+      nutritionistAccess: false,
+      createdAt: Date.now(),
+    });
+
+    await ctx.db.insert("bodyMeasurements", {
+      clientId,
+      weight: args.weight,
+      bodyFat: 0,
+      muscleMass: 0,
       timestamp: Date.now(),
     });
 

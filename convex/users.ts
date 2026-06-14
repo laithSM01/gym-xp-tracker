@@ -17,10 +17,11 @@ export const getCurrentUser = query({
 
 export const upsertUser = mutation({
   args: {
+    // gym_trainer is NOT selectable here — set by invite flow only
     role: v.union(
       v.literal("trainer"),
       v.literal("client"),
-      v.literal("nutritionist"),
+      v.literal("gym_owner"),
     ),
   },
   handler: async (ctx, args) => {
