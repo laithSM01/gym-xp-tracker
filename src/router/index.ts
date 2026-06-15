@@ -121,9 +121,14 @@ router.beforeEach(async (to) => {
     return '/sign-in'
   }
 
+  // Signed-in but no Convex user row yet — must complete onboarding first
+  await authStore.waitForUser()
+  if (!authStore.convexUser?.role) {
+    return '/onboarding'
+  }
+
   // Prevent cross-role navigation
   if (authStore.isSignedIn) {
-    await authStore.waitForUser()
     const role = authStore.convexUser?.role
     if (role) {
       for (const [r, prefix] of Object.entries(rolePrefix)) {

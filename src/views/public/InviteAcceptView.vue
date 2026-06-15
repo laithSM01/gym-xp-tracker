@@ -49,6 +49,9 @@ async function acceptInvite() {
 
   try {
     await convex.mutation(api.gymInvitations.acceptInvite, { inviteToken: token.value })
+    // Set role immediately so the router guard doesn't redirect to /onboarding
+    // before the Convex real-time subscription catches up
+    authStore.setConvexUser({ _id: '', role: 'gym_trainer' })
     accepted.value = true
     setTimeout(() => router.replace('/gym-trainer/dashboard'), 1500)
   } catch (e: unknown) {
@@ -73,27 +76,31 @@ function goToSignIn() {
       </div>
 
       <!-- Loading -->
-      <div v-if="inviteDetails === undefined" class="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 text-center">
+      <div v-if="inviteDetails === undefined"
+        class="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 text-center">
         <div class="w-8 h-8 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto mb-4" />
         <p class="text-gray-500 text-sm">Loading invite details...</p>
       </div>
 
       <!-- Invalid / not found -->
-      <div v-else-if="!inviteDetails || !token" class="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 text-center">
+      <div v-else-if="!inviteDetails || !token"
+        class="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 text-center">
         <div class="text-4xl mb-4">🔗</div>
         <h1 class="text-xl font-bold text-gray-900 mb-2">Invalid invite link</h1>
         <p class="text-gray-500 text-sm">This invite link is not valid or has already been used.</p>
       </div>
 
       <!-- Expired -->
-      <div v-else-if="inviteDetails.isExpired || inviteDetails.status === 'expired'" class="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 text-center">
+      <div v-else-if="inviteDetails.isExpired || inviteDetails.status === 'expired'"
+        class="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 text-center">
         <div class="text-4xl mb-4">⏰</div>
         <h1 class="text-xl font-bold text-gray-900 mb-2">Invite expired</h1>
         <p class="text-gray-500 text-sm">This invite link expired. Ask your gym owner to send a new one.</p>
       </div>
 
       <!-- Already accepted -->
-      <div v-else-if="inviteDetails.status === 'accepted'" class="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 text-center">
+      <div v-else-if="inviteDetails.status === 'accepted'"
+        class="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 text-center">
         <div class="text-4xl mb-4">✅</div>
         <h1 class="text-xl font-bold text-gray-900 mb-2">Already accepted</h1>
         <p class="text-gray-500 text-sm">This invite has already been accepted.</p>
@@ -133,20 +140,21 @@ function goToSignIn() {
           <p class="text-sm text-gray-500 text-center mb-4">Sign in or create an account to accept this invitation.</p>
           <button
             class="w-full py-2.5 rounded-lg bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-700 transition-colors"
-            @click="goToSignIn"
-          >
+            @click="goToSignIn">
             Sign in to accept
           </button>
         </template>
 
         <!-- Signed in -->
         <template v-else>
-          <p v-if="acceptError" class="text-sm text-red-600 mb-3">{{ acceptError }}</p>
-          <button
-            :disabled="isAccepting"
+          <div v-if="acceptError"
+            class="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-3">
+            <span class="text-red-500 text-base leading-none mt-0.5">✕</span>
+            <p class="text-sm text-red-700">Gym owners cannot accept their own trainer invites</p>
+          </div>
+          <button :disabled="isAccepting"
             class="w-full py-2.5 rounded-lg bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            @click="acceptInvite"
-          >
+            @click="acceptInvite">
             {{ isAccepting ? 'Accepting...' : 'Accept invitation' }}
           </button>
         </template>

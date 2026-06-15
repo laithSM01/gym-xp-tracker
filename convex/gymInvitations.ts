@@ -78,12 +78,6 @@ export const acceptInvite = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
-      .unique();
-    if (!user) throw new Error("User not found — complete sign-up first");
-
     const invite = await ctx.db
       .query("gymInvitations")
       .withIndex("by_token", (q) => q.eq("inviteToken", args.inviteToken))
@@ -98,12 +92,34 @@ export const acceptInvite = mutation({
     const gym = await ctx.db.get(invite.gymId);
     if (!gym) throw new Error("Gym not found");
 
-    // Set user role to gym_trainer (regardless of their current role)
-    await ctx.db.patch(user._id, { role: "gym_trainer" });
+    // Upsert the user — gym_trainer invite IS the onboarding for new users
+    const existingUser = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+
+    let userId;
+    if (!existingUser) {
+      userId = await ctx.db.insert("users", {
+        tokenIdentifier: identity.tokenIdentifier,
+        clerkId: identity.subject,
+        role: "gym_trainer",
+        name: identity.name ?? undefined,
+        email: identity.email ?? undefined,
+        createdAt: Date.now(),
+      });
+    } else {
+      // Block the gym owner from accepting their own invite
+      if (gym.ownerId === existingUser._id) {
+        throw new Error("Gym owners cannot accept their own trainer invites");
+      }
+      userId = existingUser._id;
+      await ctx.db.patch(userId, { role: "gym_trainer" });
+    }
 
     // Create affiliation record
     await ctx.db.insert("trainerGymAffiliation", {
-      gymTrainerUserId: user._id,
+      gymTrainerUserId: userId,
       gymId: invite.gymId,
       affiliationRole: "trainer",
       inviteId: invite._id,
@@ -115,7 +131,7 @@ export const acceptInvite = mutation({
     await ctx.db.patch(invite._id, {
       status: "accepted",
       acceptedAt: Date.now(),
-      acceptedByUserId: user._id,
+      acceptedByUserId: userId,
     });
 
     // Increment gym trainer slot counter (permanent — slot is never freed)
