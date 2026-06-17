@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { watch, inject } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, RouterLink } from 'vue-router'
 import { useClientDashboard, tierConfig, tierMin, tierMax, xpProgress, formatDate } from '@/composables/useClientDashboard'
 import type { ClientService } from '@/services/clients.service'
+import { useJoinRequests } from '@/composables/useJoinRequests'
 
 const clientsService = inject<ClientService>('clientsService')!
 const router = useRouter()
@@ -15,6 +16,22 @@ watch(clientProfile, (val) => {
 
 const { data, loading: isLoading, actions } = useClientDashboard()
 const { profile, challenges, nutritionPlan, programs, recentMeasurements, completingChallengeId } = data
+
+const {
+  outbound,
+  inbound,
+  myRequests,
+  respondingTo,
+  respondError,
+  approveInbound,
+  rejectInbound,
+} = useJoinRequests()
+
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'Pending',
+  approved: 'Joined',
+  rejected: 'Declined',
+}
 </script>
 
 <template>
@@ -238,6 +255,108 @@ const { profile, challenges, nutritionPlan, programs, recentMeasurements, comple
               </li>
             </ul>
           </div>
+        </div>
+      </div>
+
+      <!-- Join Requests card -->
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        <div class="flex items-center justify-between mb-5">
+          <h2 class="text-base font-semibold text-gray-900">Gym &amp; Trainer Requests</h2>
+          <RouterLink
+            to="/client/browse"
+            class="text-sm font-semibold text-purple-600 hover:text-purple-800 transition-colors"
+          >
+            Find a Gym or Trainer →
+          </RouterLink>
+        </div>
+
+        <p v-if="respondError" class="text-sm text-red-600 mb-3">{{ respondError }}</p>
+
+        <!-- Inbound pings from gyms/trainers -->
+        <div v-if="inbound.length > 0" class="mb-5">
+          <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            Invites from Gyms &amp; Trainers
+          </h3>
+          <ul class="flex flex-col divide-y divide-gray-100">
+            <li
+              v-for="r in inbound"
+              :key="r._id"
+              class="flex items-center gap-4 py-3"
+            >
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-gray-900 truncate">
+                  {{ r.initiatedBy === 'gym' ? 'Gym invite' : 'Trainer invite' }}
+                </p>
+                <p v-if="r.message" class="text-xs text-gray-400 truncate">{{ r.message }}</p>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <button
+                  v-if="r.status === 'pending'"
+                  :disabled="respondingTo === r._id"
+                  class="text-xs px-3 py-1 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition-colors disabled:opacity-40"
+                  @click="approveInbound(r._id)"
+                >
+                  {{ respondingTo === r._id ? '...' : 'Accept' }}
+                </button>
+                <button
+                  v-if="r.status === 'pending'"
+                  :disabled="respondingTo === r._id"
+                  class="text-xs px-3 py-1 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-40"
+                  @click="rejectInbound(r._id)"
+                >
+                  Decline
+                </button>
+                <span
+                  v-else
+                  class="text-xs font-semibold px-2 py-0.5 rounded-full ring-1"
+                  :class="{
+                    'bg-green-100 text-green-700 ring-green-200': r.status === 'approved',
+                    'bg-gray-100 text-gray-500 ring-gray-200': r.status === 'rejected',
+                  }"
+                >
+                  {{ STATUS_LABELS[r.status] }}
+                </span>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Outbound requests sent by client -->
+        <div>
+          <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            Requests You Sent
+          </h3>
+          <div v-if="myRequests === undefined" class="py-4 flex justify-center">
+            <div class="w-4 h-4 rounded-full border-2 border-purple-500 border-t-transparent animate-spin" />
+          </div>
+          <p v-else-if="outbound.length === 0" class="text-sm text-gray-400 py-4 text-center">
+            No requests sent yet.
+            <RouterLink to="/client/browse" class="text-purple-600 hover:underline">Browse gyms and trainers</RouterLink>
+          </p>
+          <ul v-else class="flex flex-col divide-y divide-gray-100">
+            <li
+              v-for="r in outbound"
+              :key="r._id"
+              class="flex items-center gap-4 py-3"
+            >
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-gray-900 truncate">
+                  {{ r.gymId ? 'Gym request' : 'Trainer request' }}
+                </p>
+                <p class="text-xs text-gray-400">{{ new Date(r.createdAt).toLocaleDateString() }}</p>
+              </div>
+              <span
+                class="shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full ring-1"
+                :class="{
+                  'bg-yellow-100 text-yellow-700 ring-yellow-200': r.status === 'pending',
+                  'bg-green-100 text-green-700 ring-green-200': r.status === 'approved',
+                  'bg-gray-100 text-gray-500 ring-gray-200': r.status === 'rejected',
+                }"
+              >
+                {{ STATUS_LABELS[r.status] }}
+              </span>
+            </li>
+          </ul>
         </div>
       </div>
 

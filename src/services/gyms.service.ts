@@ -29,6 +29,7 @@ export interface CreateGymInput {
 
 export interface GymService {
   getMyGym(): Ref<GymProfile | null | undefined>
+  listPublic(): Ref<GymProfile[]>
   createGym(data: CreateGymInput): Promise<Id<'gyms'>>
   generateUploadUrl(): Promise<string>
 }

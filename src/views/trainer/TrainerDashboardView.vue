@@ -4,6 +4,7 @@ import { RouterLink, useRouter } from 'vue-router'
 import { useTrainerDashboard } from '@/composables/useTrainerDashboard'
 import { tierConfig, tierMax, xpProgress } from '@/utils/xp'
 import type { TrainerService } from '@/services/trainers.service'
+import { useIncomingRequests } from '@/composables/useIncomingRequests'
 
 const trainersService = inject<TrainerService>('trainersService')!
 const router = useRouter()
@@ -16,6 +17,18 @@ watch(trainerProfile, (val) => {
 
 const { data } = useTrainerDashboard()
 const { clients, trainerName, enrolledCount } = data
+
+const {
+  pendingRequests,
+  freeClients,
+  respondingTo,
+  respondError,
+  pingingClient,
+  pingError,
+  approve,
+  reject,
+  ping,
+} = useIncomingRequests()
 </script>
 
 <template>
@@ -84,5 +97,91 @@ const { clients, trainerName, enrolledCount } = data
         </div>
       </RouterLink>
     </div>
+
+    <!-- Client Requests panel -->
+    <section class="mt-8 bg-white rounded-2xl border border-gray-200 p-6 flex flex-col gap-4">
+      <h2 class="text-base font-semibold text-gray-900">Client Join Requests</h2>
+
+      <p v-if="respondError" class="text-sm text-red-600">{{ respondError }}</p>
+
+      <div v-if="pendingRequests === undefined" class="py-6 flex justify-center">
+        <div class="w-5 h-5 rounded-full border-2 border-purple-600 border-t-transparent animate-spin" />
+      </div>
+
+      <p v-else-if="pendingRequests?.length === 0" class="text-sm text-gray-400 text-center py-4">
+        No pending requests from clients.
+      </p>
+
+      <ul v-else class="flex flex-col divide-y divide-gray-100">
+        <li
+          v-for="r in pendingRequests"
+          :key="r._id"
+          class="flex items-center gap-4 py-3"
+        >
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-gray-900 truncate">{{ r.clientName }}</p>
+            <p class="text-xs text-gray-500">{{ r.clientCity }} · {{ r.clientGoal }}</p>
+            <p v-if="r.message" class="text-xs text-gray-400 mt-0.5 truncate">{{ r.message }}</p>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <button
+              :disabled="respondingTo === r._id"
+              class="text-xs px-3 py-1.5 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition-colors disabled:opacity-40"
+              @click="approve(r._id)"
+            >
+              {{ respondingTo === r._id ? '...' : 'Approve' }}
+            </button>
+            <button
+              :disabled="respondingTo === r._id"
+              class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-40"
+              @click="reject(r._id)"
+            >
+              Decline
+            </button>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Discover Free Clients panel -->
+    <section class="mt-4 bg-white rounded-2xl border border-gray-200 p-6 flex flex-col gap-4">
+      <h2 class="text-base font-semibold text-gray-900">Discover Free Clients</h2>
+      <p class="text-xs text-gray-400 -mt-2">Unassigned clients with no gym or trainer yet</p>
+
+      <p v-if="pingError" class="text-sm text-red-600">{{ pingError }}</p>
+
+      <div v-if="freeClients === undefined" class="py-6 flex justify-center">
+        <div class="w-5 h-5 rounded-full border-2 border-purple-600 border-t-transparent animate-spin" />
+      </div>
+
+      <p v-else-if="freeClients === null" class="text-sm text-gray-400 text-center py-4">
+        An active subscription is required to discover free clients.
+      </p>
+
+      <p v-else-if="freeClients.length === 0" class="text-sm text-gray-400 text-center py-4">
+        No free clients found.
+      </p>
+
+      <ul v-else class="flex flex-col divide-y divide-gray-100">
+        <li
+          v-for="client in freeClients"
+          :key="client._id"
+          class="flex items-center gap-4 py-3"
+        >
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-gray-900 truncate">{{ client.name }}</p>
+            <p class="text-xs text-gray-500">{{ client.city }} · Age {{ client.age }}</p>
+            <p class="text-xs text-gray-400 truncate">{{ client.goal }}</p>
+          </div>
+          <button
+            :disabled="pingingClient === client.userId"
+            class="shrink-0 text-xs px-3 py-1.5 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition-colors disabled:opacity-40"
+            @click="ping(client.userId)"
+          >
+            {{ pingingClient === client.userId ? 'Sending...' : 'Invite' }}
+          </button>
+        </li>
+      </ul>
+    </section>
   </div>
 </template>

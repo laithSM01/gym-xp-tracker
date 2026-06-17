@@ -20,6 +20,15 @@ export class ConvexGymsService implements GymService {
     return gym
   }
 
+  listPublic() {
+    const gyms = ref<GymProfile[]>([])
+    const unsub = this.client.onUpdate(api.gyms.listPublic, {}, (data) => {
+      gyms.value = (data as GymProfile[]) ?? []
+    })
+    onUnmounted(() => unsub())
+    return gyms
+  }
+
   async createGym(data: CreateGymInput): Promise<Id<'gyms'>> {
     return await this.client.mutation(api.gyms.createGym, data) as Id<'gyms'>
   }

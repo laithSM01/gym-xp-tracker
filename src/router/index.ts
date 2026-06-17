@@ -59,6 +59,10 @@ const router = createRouter({
           component: () => import('@/views/client/ClientSetupView.vue'),
         },
         {
+          path: 'client/browse',
+          component: () => import('@/views/client/ClientBrowseView.vue'),
+        },
+        {
           path: 'nutritionist/dashboard',
           component: () => import('@/views/nutritionist/NutritionistDashboardView.vue'),
         },
@@ -108,7 +112,7 @@ router.beforeEach(async (to) => {
   // Public paths are always accessible
   if (PUBLIC_PATHS.includes(to.path)) {
     // Signed-in users on / or /sign-in redirect to their dashboard
-    if (authStore.isSignedIn && (to.path === '/' || to.path === '/sign-in')) {
+    if (authStore.isSignedIn && to.path === '/sign-in') {
       await authStore.waitForUser()
       const role = authStore.convexUser?.role
       return role ? roleDashboard[role] : '/onboarding'

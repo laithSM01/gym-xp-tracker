@@ -2,7 +2,7 @@ import { ref, onUnmounted } from 'vue'
 import type { ConvexClient } from 'convex/browser'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
-import type { TrainerService, TrainerProfile, CreateTrainerInput } from '../trainers.service'
+import type { TrainerService, TrainerProfile, TrainerPublicProfile, CreateTrainerInput } from '../trainers.service'
 
 export class ConvexTrainersService implements TrainerService {
   private client: ConvexClient
@@ -18,6 +18,15 @@ export class ConvexTrainersService implements TrainerService {
     })
     onUnmounted(() => unsub())
     return profile
+  }
+
+  listPublic() {
+    const trainers = ref<TrainerPublicProfile[]>([])
+    const unsub = this.client.onUpdate(api.personalTrainers.listPublic, {}, (data) => {
+      trainers.value = (data as TrainerPublicProfile[]) ?? []
+    })
+    onUnmounted(() => unsub())
+    return trainers
   }
 
   async createTrainerProfile(data: CreateTrainerInput): Promise<Id<'personalTrainers'>> {

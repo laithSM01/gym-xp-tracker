@@ -27,8 +27,13 @@ export interface CreateTrainerInput {
   coverPhotoStorageId?: Id<'_storage'>
 }
 
+export interface TrainerPublicProfile extends TrainerProfile {
+  name: string
+}
+
 export interface TrainerService {
   getMyTrainerProfile(): Ref<TrainerProfile | null | undefined>
+  listPublic(): Ref<TrainerPublicProfile[]>
   createTrainerProfile(data: CreateTrainerInput): Promise<Id<'personalTrainers'>>
   generateUploadUrl(): Promise<string>
 }
