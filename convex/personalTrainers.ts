@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { LIMITS, type SubscriptionPlan } from "./subscriptionLimits";
 
 export const listPublic = query({
   args: {},
@@ -35,6 +36,65 @@ export const getMyTrainerProfile = query({
       .query("personalTrainers")
       .withIndex("by_userId", (q) => q.eq("userId", user._id))
       .unique();
+  },
+});
+
+export const getTrainerDashboard = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+    if (!user || user.role !== "trainer") return null;
+
+    const trainerProfile = await ctx.db
+      .query("personalTrainers")
+      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .unique();
+    if (!trainerProfile) return null;
+
+    const subscription = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_trainerProfileId", (q) => q.eq("trainerProfileId", trainerProfile._id))
+      .unique();
+
+    const clientRows = await ctx.db
+      .query("clients")
+      .withIndex("by_trainerId", (q) => q.eq("trainerId", user._id))
+      .take(100);
+
+    const clients = await Promise.all(
+      clientRows.map(async (client) => {
+        const clientUser = await ctx.db.get(client.userId);
+        return {
+          _id: client._id,
+          name: clientUser?.name ?? clientUser?.email ?? "Unknown",
+          goal: client.goal,
+          city: client.city,
+          currentXP: client.currentXP,
+          currentTier: client.currentTier,
+          isEnrolled: client.isEnrolled,
+        };
+      }),
+    );
+
+    clients.sort((a, b) => b.currentXP - a.currentXP);
+
+    const limits = subscription
+      ? LIMITS[subscription.plan as SubscriptionPlan]
+      : null;
+
+    return {
+      trainerProfile,
+      trainerName: user.name ?? user.email ?? "Trainer",
+      subscription,
+      clients,
+      limits,
+    };
   },
 });
 

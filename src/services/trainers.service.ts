@@ -31,8 +31,38 @@ export interface TrainerPublicProfile extends TrainerProfile {
   name: string
 }
 
+export interface TrainerDashboardClient {
+  _id: Id<'clients'>
+  name: string
+  goal: string
+  city: string
+  currentXP: number
+  currentTier: 'beginner' | 'novice' | 'intermediate' | 'advanced' | 'elite'
+  isEnrolled: boolean
+}
+
+export interface TrainerSubscriptionSummary {
+  plan: 'personal_trainer' | 'gym_small' | 'gym_medium' | 'gym_large'
+  status: 'active' | 'past_due' | 'canceled'
+  currentPeriodEnd: number
+}
+
+export interface TrainerDashboardLimits {
+  clients: number
+  products: number
+}
+
+export interface TrainerDashboardData {
+  trainerProfile: TrainerProfile
+  trainerName: string
+  subscription: TrainerSubscriptionSummary | null
+  clients: TrainerDashboardClient[]
+  limits: TrainerDashboardLimits | null
+}
+
 export interface TrainerService {
   getMyTrainerProfile(): Ref<TrainerProfile | null | undefined>
+  getTrainerDashboard(): Ref<TrainerDashboardData | null | undefined>
   listPublic(): Ref<TrainerPublicProfile[]>
   createTrainerProfile(data: CreateTrainerInput): Promise<Id<'personalTrainers'>>
   generateUploadUrl(): Promise<string>
