@@ -20,8 +20,10 @@ const {
   trainerRequestStatus,
 } = useJoinRequests()
 
-function formatPriceRange(min: number, max: number) {
-  return `${min}–${max} JOD/mo`
+function formatPlans(plans: { priceJod: number }[] | undefined) {
+  if (!plans?.length) return 'See pricing'
+  const min = Math.min(...plans.map((p) => p.priceJod))
+  return `From ${min} JOD/mo`
 }
 
 function gymButtonLabel(gymId: Id<'gyms'>) {
@@ -101,7 +103,7 @@ function trainerButtonDisabled(trainerProfileId: Id<'personalTrainers'>) {
 
           <div class="mt-auto pt-3 border-t border-gray-100 flex items-center justify-between gap-3">
             <span class="text-sm font-medium text-purple-700">
-              {{ formatPriceRange(gym.priceRange.min, gym.priceRange.max) }}
+              {{ formatPlans(gym.pricingPlans) }}
             </span>
             <button
               :disabled="gymButtonDisabled(gym._id)"

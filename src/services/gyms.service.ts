@@ -1,6 +1,25 @@
 import type { Ref } from 'vue'
 import type { Id } from '../../convex/_generated/dataModel'
 
+export type PricingPlanDuration = '1_month' | '3_months' | '6_months' | '8_months' | '12_months'
+
+export interface PricingPlan {
+  duration: PricingPlanDuration
+  priceJod: number
+  label?: string
+  isOffer: boolean
+  offerExpiresAt?: number
+}
+
+export interface ProductSummary {
+  _id: Id<'products'>
+  name: string
+  description: string
+  priceJod: number
+  category: 'supplement' | 'equipment' | 'food' | 'digital_program' | 'session'
+  imageUrl: string | null
+}
+
 export interface GymProfile {
   _id: Id<'gyms'>
   ownerId: Id<'users'>
@@ -8,8 +27,12 @@ export interface GymProfile {
   bio?: string
   location: string
   city: string
+  genderType?: GenderType
+  openingHours?: OpeningHours
+  genderSections?: GenderSection[]
+  classSchedules?: ClassSchedule[]
   facilities: string[]
-  priceRange: { min: number; max: number }
+  pricingPlans: PricingPlan[]
   logoStorageId?: Id<'_storage'>
   coverPhotoStorageId?: Id<'_storage'>
   isActive: boolean
@@ -19,13 +42,54 @@ export interface GymProfile {
   createdAt: number
 }
 
+export type GenderType = 'male' | 'female' | 'mixed'
+
+export interface OpeningHours {
+  weekdays: string
+  weekends: string
+  friday?: string
+}
+
+export interface GenderSection {
+  gender: GenderType
+  label?: string
+  weekdays?: string
+  weekends?: string
+  friday?: string
+}
+
+export interface ClassSchedule {
+  activity: string
+  schedule: string
+  instructor?: string
+}
+
 export interface CreateGymInput {
   name: string
   bio?: string
   location: string
   city: string
+  genderType?: GenderType
+  openingHours?: OpeningHours
+  genderSections?: GenderSection[]
+  classSchedules?: ClassSchedule[]
   facilities: string[]
-  priceRange: { min: number; max: number }
+  pricingPlans: PricingPlan[]
+  logoStorageId?: Id<'_storage'>
+  coverPhotoStorageId?: Id<'_storage'>
+}
+
+export interface UpdateGymInput {
+  name?: string
+  bio?: string
+  location?: string
+  city?: string
+  genderType?: GenderType
+  openingHours?: OpeningHours
+  genderSections?: GenderSection[]
+  classSchedules?: ClassSchedule[]
+  facilities?: string[]
+  pricingPlans?: PricingPlan[]
   logoStorageId?: Id<'_storage'>
   coverPhotoStorageId?: Id<'_storage'>
 }
@@ -67,10 +131,42 @@ export interface GymDashboardData {
   limits: GymDashboardLimits | null
 }
 
+export interface GymPublicTrainer {
+  userId: Id<'users'>
+  name: string
+  affiliationRole: 'trainer' | 'head_trainer'
+}
+
+export interface GymPublicInfo {
+  _id: Id<'gyms'>
+  name: string
+  bio?: string
+  location: string
+  city: string
+  genderType?: GenderType
+  openingHours?: OpeningHours
+  genderSections?: GenderSection[]
+  classSchedules?: ClassSchedule[]
+  facilities: string[]
+  pricingPlans: PricingPlan[]
+  logoUrl: string | null
+  coverPhotoUrl: string | null
+  isActive: boolean
+  createdAt: number
+}
+
+export interface GymPublicPageData {
+  gym: GymPublicInfo
+  trainers: GymPublicTrainer[]
+  products: ProductSummary[]
+}
+
 export interface GymService {
   getMyGym(): Ref<GymProfile | null | undefined>
   getGymDashboard(): Ref<GymDashboardData | null | undefined>
   listPublic(): Ref<GymProfile[]>
+  getGymPublicPage(gymId: Id<'gyms'>): Ref<GymPublicPageData | null | undefined>
   createGym(data: CreateGymInput): Promise<Id<'gyms'>>
+  updateGym(data: UpdateGymInput): Promise<void>
   generateUploadUrl(): Promise<string>
 }

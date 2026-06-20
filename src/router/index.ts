@@ -29,6 +29,12 @@ const router = createRouter({
       path: '/invite/gym',
       component: () => import('@/views/public/InviteAcceptView.vue'),
     },
+    // Public profile pages — no auth required
+    {
+      path: '/gym/:gymId',
+      name: 'gymPublicProfile',
+      component: () => import('@/views/public/GymPublicView.vue'),
+    },
     // Authenticated routes
     {
       path: '/',
@@ -79,6 +85,10 @@ const router = createRouter({
           component: () => import('@/views/gym/GymSetupView.vue'),
         },
         {
+          path: 'gym/edit',
+          component: () => import('@/views/gym/GymEditView.vue'),
+        },
+        {
           path: 'gym-trainer/dashboard',
           component: () => import('@/views/gym-trainer/GymTrainerDashboardView.vue'),
         },
@@ -109,9 +119,13 @@ router.beforeEach(async (to) => {
   const authStore = useAuthStore()
   await authStore.waitForLoad()
 
+  const isPublicRoute =
+    PUBLIC_PATHS.includes(to.path) ||
+    to.name === 'gymPublicProfile'
+
   // Public paths are always accessible
-  if (PUBLIC_PATHS.includes(to.path)) {
-    // Signed-in users on / or /sign-in redirect to their dashboard
+  if (isPublicRoute) {
+    // Signed-in users on /sign-in redirect to their dashboard
     if (authStore.isSignedIn && to.path === '/sign-in') {
       await authStore.waitForUser()
       const role = authStore.convexUser?.role

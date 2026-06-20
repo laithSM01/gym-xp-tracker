@@ -1,20 +1,8 @@
-import { ref, computed, inject } from 'vue'
+import { ref, computed, watch, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import type { GymService, PricingPlan, PricingPlanDuration, GenderSection, ClassSchedule } from '@/services/gyms.service'
 import type { Id } from '../../convex/_generated/dataModel'
-
-export const FACILITY_OPTIONS = [
-  'weights', 'cardio', 'swimming pool', 'boxing', 'sauna', 'steam room',
-  'group classes', 'parking', 'locker rooms', 'women section',
-]
-
-export const DURATION_OPTIONS: { value: PricingPlanDuration; label: string }[] = [
-  { value: '1_month', label: '1 Month' },
-  { value: '3_months', label: '3 Months' },
-  { value: '6_months', label: '6 Months' },
-  { value: '8_months', label: '8 Months' },
-  { value: '12_months', label: '12 Months' },
-]
+import { FACILITY_OPTIONS, DURATION_OPTIONS } from './useGymSetup'
 
 function blankSection(): GenderSection & { weekdays: string; weekends: string; friday: string } {
   return { gender: 'mixed', label: '', weekdays: '', weekends: '', friday: '' }
@@ -24,9 +12,11 @@ function blankSchedule(): ClassSchedule & { instructor: string } {
   return { activity: '', schedule: '', instructor: '' }
 }
 
-export function useGymSetup() {
+export function useGymEdit() {
   const gymsService = inject<GymService>('gymsService')!
   const router = useRouter()
+
+  const gym = gymsService.getMyGym()
 
   const name = ref('')
   const city = ref('')
@@ -36,14 +26,6 @@ export function useGymSetup() {
   const classSchedules = ref<Array<ClassSchedule & { instructor: string }>>([])
   const facilities = ref<string[]>([])
   const pricingPlans = ref<PricingPlan[]>([])
-  const logoFile = ref<File | null>(null)
-  const coverFile = ref<File | null>(null)
-  const logoPreview = ref<string | null>(null)
-  const coverPreview = ref<string | null>(null)
-
-  const isSubmitting = ref(false)
-  const submitError = ref('')
-
   const draftPlan = ref({
     duration: '1_month' as PricingPlanDuration,
     priceJod: '' as number | '',
@@ -51,10 +33,69 @@ export function useGymSetup() {
     isOffer: false,
     offerExpiresAt: '',
   })
-
   const isDraftValid = computed(
     () => typeof draftPlan.value.priceJod === 'number' && draftPlan.value.priceJod > 0,
   )
+  const logoFile = ref<File | null>(null)
+  const coverFile = ref<File | null>(null)
+  const logoPreview = ref<string | null>(null)
+  const coverPreview = ref<string | null>(null)
+  const isSubmitting = ref(false)
+  const submitError = ref('')
+  const populated = ref(false)
+
+  watch(
+    gym,
+    (g) => {
+      if (!g || populated.value) return
+      populated.value = true
+      name.value = g.name
+      city.value = g.city
+      location.value = g.location
+      bio.value = g.bio ?? ''
+      facilities.value = [...g.facilities]
+      pricingPlans.value = [...g.pricingPlans]
+
+      if (g.genderSections && g.genderSections.length > 0) {
+        genderSections.value = g.genderSections.map((s) => ({
+          gender: s.gender,
+          label: s.label ?? '',
+          weekdays: s.weekdays ?? '',
+          weekends: s.weekends ?? '',
+          friday: s.friday ?? '',
+        }))
+      } else {
+        // Migrate from old simple genderType + openingHours format
+        genderSections.value = [{
+          gender: g.genderType ?? 'mixed',
+          label: '',
+          weekdays: g.openingHours?.weekdays ?? '',
+          weekends: g.openingHours?.weekends ?? '',
+          friday: g.openingHours?.friday ?? '',
+        }]
+      }
+
+      classSchedules.value = (g.classSchedules ?? []).map((c) => ({
+        activity: c.activity,
+        schedule: c.schedule,
+        instructor: c.instructor ?? '',
+      }))
+    },
+    { immediate: true },
+  )
+
+  const isFormValid = computed(
+    () =>
+      name.value.trim().length > 0 &&
+      city.value.trim().length > 0 &&
+      location.value.trim().length > 0,
+  )
+
+  function toggleFacility(facility: string) {
+    const idx = facilities.value.indexOf(facility)
+    if (idx === -1) facilities.value.push(facility)
+    else facilities.value.splice(idx, 1)
+  }
 
   function addPricingPlan() {
     if (!isDraftValid.value) return
@@ -91,20 +132,6 @@ export function useGymSetup() {
     classSchedules.value.splice(idx, 1)
   }
 
-  const isFormValid = computed(
-    () =>
-      name.value.trim().length > 0 &&
-      city.value.trim().length > 0 &&
-      location.value.trim().length > 0 &&
-      pricingPlans.value.length > 0,
-  )
-
-  function toggleFacility(facility: string) {
-    const idx = facilities.value.indexOf(facility)
-    if (idx === -1) facilities.value.push(facility)
-    else facilities.value.splice(idx, 1)
-  }
-
   function onLogoChange(e: Event) {
     const file = (e.target as HTMLInputElement).files?.[0]
     if (!file) return
@@ -131,7 +158,7 @@ export function useGymSetup() {
     return storageId
   }
 
-  async function submit() {
+  async function save() {
     if (!isFormValid.value) return
     isSubmitting.value = true
     submitError.value = ''
@@ -158,7 +185,7 @@ export function useGymSetup() {
           instructor: c.instructor?.trim() || undefined,
         }))
 
-      await gymsService.createGym({
+      await gymsService.updateGym({
         name: name.value.trim(),
         bio: bio.value.trim() || undefined,
         location: location.value.trim(),
@@ -167,8 +194,8 @@ export function useGymSetup() {
         classSchedules: schedules.length ? schedules : undefined,
         facilities: facilities.value,
         pricingPlans: pricingPlans.value,
-        logoStorageId,
-        coverPhotoStorageId: coverStorageId,
+        ...(logoStorageId ? { logoStorageId } : {}),
+        ...(coverStorageId ? { coverPhotoStorageId: coverStorageId } : {}),
       })
 
       router.push('/gym/dashboard')
@@ -180,6 +207,7 @@ export function useGymSetup() {
   }
 
   return {
+    gym,
     name, city, location, bio,
     genderSections, classSchedules,
     facilities, pricingPlans, draftPlan, isDraftValid,
@@ -191,6 +219,6 @@ export function useGymSetup() {
     addPricingPlan, removePricingPlan,
     addGenderSection, removeGenderSection,
     addClassSchedule, removeClassSchedule,
-    onLogoChange, onCoverChange, submit,
+    onLogoChange, onCoverChange, save,
   }
 }

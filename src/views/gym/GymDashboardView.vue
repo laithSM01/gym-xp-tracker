@@ -175,10 +175,16 @@ const {
       >
         🏋️
       </div>
-      <div>
+      <div class="flex-1">
         <h1 class="text-xl font-bold text-gray-900">{{ dashboard.gym.name }}</h1>
         <p class="text-sm text-gray-500">{{ dashboard.gym.city }} · {{ dashboard.gym.location }}</p>
       </div>
+      <RouterLink
+        to="/gym/edit"
+        class="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+      >
+        Edit Profile
+      </RouterLink>
     </div>
 
     <!-- Overview bar -->

@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { useGymSetup } from '@/composables/useGymSetup'
+import { useGymEdit } from '@/composables/useGymEdit'
 
 const {
+  gym,
   name, city, location, bio,
   genderSections, classSchedules,
   facilities, pricingPlans, draftPlan, isDraftValid,
@@ -12,8 +13,8 @@ const {
   addPricingPlan, removePricingPlan,
   addGenderSection, removeGenderSection,
   addClassSchedule, removeClassSchedule,
-  onLogoChange, onCoverChange, submit,
-} = useGymSetup()
+  onLogoChange, onCoverChange, save,
+} = useGymEdit()
 
 const DURATION_LABELS: Record<string, string> = {
   '1_month': '1 Month',
@@ -33,11 +34,15 @@ const GENDER_OPTIONS = [
 <template>
   <div class="max-w-2xl mx-auto py-10 px-4">
     <div class="mb-8">
-      <h1 class="text-2xl font-black text-gray-900">Set up your gym profile</h1>
-      <p class="text-gray-500 text-sm mt-1">This is how your gym will appear on the marketplace.</p>
+      <h1 class="text-2xl font-black text-gray-900">Edit gym profile</h1>
+      <p class="text-gray-500 text-sm mt-1">Changes are visible immediately on your public page.</p>
     </div>
 
-    <form @submit.prevent="submit" class="flex flex-col gap-6">
+    <div v-if="gym === undefined" class="flex items-center justify-center py-16">
+      <div class="w-8 h-8 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
+    </div>
+
+    <form v-else @submit.prevent="save" class="flex flex-col gap-6">
 
       <!-- Gym name -->
       <div class="flex flex-col gap-1.5">
@@ -88,7 +93,7 @@ const GENDER_OPTIONS = [
         <div class="flex items-center justify-between">
           <div>
             <label class="text-sm font-medium text-gray-700">Gender & Hours</label>
-            <p class="text-xs text-gray-400 mt-0.5">Add one section per area — e.g. Mixed floor + Ladies section with separate hours</p>
+            <p class="text-xs text-gray-400 mt-0.5">One section per area — e.g. Mixed floor + Ladies section</p>
           </div>
           <button
             type="button"
@@ -131,7 +136,7 @@ const GENDER_OPTIONS = [
               </select>
             </div>
             <div class="flex flex-col gap-1">
-              <span class="text-xs text-gray-500">Section label <span class="text-gray-400">(optional)</span></span>
+              <span class="text-xs text-gray-500">Label <span class="text-gray-400">(optional)</span></span>
               <input
                 v-model="section.label"
                 type="text"
@@ -197,7 +202,7 @@ const GENDER_OPTIONS = [
         <div class="flex items-center justify-between">
           <div>
             <label class="text-sm font-medium text-gray-700">Class Schedules <span class="text-gray-400">(optional)</span></label>
-            <p class="text-xs text-gray-400 mt-0.5">e.g. Cardio class Mon/Wed/Fri, Boxing sessions Tue/Thu</p>
+            <p class="text-xs text-gray-400 mt-0.5">Cardio, boxing, swimming — days and times each class runs</p>
           </div>
           <button
             type="button"
@@ -260,9 +265,7 @@ const GENDER_OPTIONS = [
       <!-- Pricing plans -->
       <div class="flex flex-col gap-3">
         <div>
-          <label class="text-sm font-medium text-gray-700">
-            Membership Prices <span class="text-red-500">*</span>
-          </label>
+          <label class="text-sm font-medium text-gray-700">Membership Prices</label>
           <p class="text-xs text-gray-400 mt-0.5">Add plans for each duration you offer. Use the package field for bundles like "Gym + Swimming".</p>
         </div>
 
@@ -354,12 +357,12 @@ const GENDER_OPTIONS = [
           </div>
         </div>
 
-        <p v-else class="text-xs text-red-500">Add at least one membership plan to continue.</p>
+        <p v-else class="text-xs text-gray-400">No plans yet — add your first membership plan above.</p>
       </div>
 
       <!-- Logo upload -->
       <div class="flex flex-col gap-2">
-        <label class="text-sm font-medium text-gray-700">Logo <span class="text-gray-400">(optional)</span></label>
+        <label class="text-sm font-medium text-gray-700">Logo <span class="text-gray-400">(change)</span></label>
         <div class="flex items-center gap-4">
           <div class="w-16 h-16 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-gray-50">
             <img v-if="logoPreview" :src="logoPreview" class="w-full h-full object-cover" />
@@ -374,7 +377,7 @@ const GENDER_OPTIONS = [
 
       <!-- Cover photo -->
       <div class="flex flex-col gap-2">
-        <label class="text-sm font-medium text-gray-700">Cover photo <span class="text-gray-400">(optional)</span></label>
+        <label class="text-sm font-medium text-gray-700">Cover photo <span class="text-gray-400">(change)</span></label>
         <label class="relative w-full h-32 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-gray-50 cursor-pointer group">
           <img v-if="coverPreview" :src="coverPreview" class="w-full h-full object-cover" />
           <span v-else class="text-sm text-purple-600 font-medium group-hover:text-purple-700">Choose cover photo</span>
@@ -388,14 +391,22 @@ const GENDER_OPTIONS = [
       <!-- Error -->
       <p v-if="submitError" class="text-sm text-red-600">{{ submitError }}</p>
 
-      <!-- Submit -->
-      <button
-        type="submit"
-        :disabled="!isFormValid || isSubmitting"
-        class="py-2.5 px-6 rounded-lg bg-purple-600 text-white font-semibold text-sm transition-colors hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {{ isSubmitting ? 'Creating profile...' : 'Create gym profile' }}
-      </button>
+      <!-- Actions -->
+      <div class="flex gap-3">
+        <RouterLink
+          to="/gym/dashboard"
+          class="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
+        >
+          Cancel
+        </RouterLink>
+        <button
+          type="submit"
+          :disabled="!isFormValid || isSubmitting"
+          class="flex-1 py-2.5 px-6 rounded-lg bg-purple-600 text-white font-semibold text-sm transition-colors hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {{ isSubmitting ? 'Saving...' : 'Save changes' }}
+        </button>
+      </div>
 
     </form>
   </div>

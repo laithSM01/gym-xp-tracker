@@ -2,6 +2,20 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { LIMITS, type SubscriptionPlan } from "./subscriptionLimits";
 
+const pricingPlanValidator = v.object({
+  duration: v.union(
+    v.literal("1_month"),
+    v.literal("3_months"),
+    v.literal("6_months"),
+    v.literal("8_months"),
+    v.literal("12_months"),
+  ),
+  priceJod: v.number(),
+  label: v.optional(v.string()),
+  isOffer: v.boolean(),
+  offerExpiresAt: v.optional(v.number()),
+});
+
 export const listPublic = query({
   args: {},
   handler: async (ctx) => {
@@ -32,14 +46,38 @@ export const getMyGym = query({
   },
 });
 
+const openingHoursValidator = v.object({
+  weekdays: v.string(),
+  weekends: v.string(),
+  friday: v.optional(v.string()),
+});
+
+const genderSectionValidator = v.object({
+  gender: v.union(v.literal("male"), v.literal("female"), v.literal("mixed")),
+  label: v.optional(v.string()),
+  weekdays: v.optional(v.string()),
+  weekends: v.optional(v.string()),
+  friday: v.optional(v.string()),
+});
+
+const classScheduleValidator = v.object({
+  activity: v.string(),
+  schedule: v.string(),
+  instructor: v.optional(v.string()),
+});
+
 export const createGym = mutation({
   args: {
     name: v.string(),
     bio: v.optional(v.string()),
     location: v.string(),
     city: v.string(),
+    genderType: v.optional(v.union(v.literal("male"), v.literal("female"), v.literal("mixed"))),
+    openingHours: v.optional(openingHoursValidator),
+    genderSections: v.optional(v.array(genderSectionValidator)),
+    classSchedules: v.optional(v.array(classScheduleValidator)),
     facilities: v.array(v.string()),
-    priceRange: v.object({ min: v.number(), max: v.number() }),
+    pricingPlans: v.array(pricingPlanValidator),
     logoStorageId: v.optional(v.id("_storage")),
     coverPhotoStorageId: v.optional(v.id("_storage")),
   },
@@ -66,8 +104,12 @@ export const createGym = mutation({
       bio: args.bio?.trim(),
       location: args.location.trim(),
       city: args.city.trim(),
+      genderType: args.genderType,
+      openingHours: args.openingHours,
+      genderSections: args.genderSections,
+      classSchedules: args.classSchedules,
       facilities: args.facilities,
-      priceRange: args.priceRange,
+      pricingPlans: args.pricingPlans,
       logoStorageId: args.logoStorageId,
       coverPhotoStorageId: args.coverPhotoStorageId,
       isActive: true,
@@ -162,8 +204,12 @@ export const updateGym = mutation({
     bio: v.optional(v.string()),
     location: v.optional(v.string()),
     city: v.optional(v.string()),
+    genderType: v.optional(v.union(v.literal("male"), v.literal("female"), v.literal("mixed"))),
+    openingHours: v.optional(openingHoursValidator),
+    genderSections: v.optional(v.array(genderSectionValidator)),
+    classSchedules: v.optional(v.array(classScheduleValidator)),
     facilities: v.optional(v.array(v.string())),
-    priceRange: v.optional(v.object({ min: v.number(), max: v.number() })),
+    pricingPlans: v.optional(v.array(pricingPlanValidator)),
     logoStorageId: v.optional(v.id("_storage")),
     coverPhotoStorageId: v.optional(v.id("_storage")),
   },
@@ -188,11 +234,94 @@ export const updateGym = mutation({
     if (args.bio !== undefined) patch.bio = args.bio.trim();
     if (args.location !== undefined) patch.location = args.location.trim();
     if (args.city !== undefined) patch.city = args.city.trim();
+    if (args.genderType !== undefined) patch.genderType = args.genderType;
+    if (args.openingHours !== undefined) patch.openingHours = args.openingHours;
+    if (args.genderSections !== undefined) patch.genderSections = args.genderSections;
+    if (args.classSchedules !== undefined) patch.classSchedules = args.classSchedules;
     if (args.facilities !== undefined) patch.facilities = args.facilities;
-    if (args.priceRange !== undefined) patch.priceRange = args.priceRange;
+    if (args.pricingPlans !== undefined) patch.pricingPlans = args.pricingPlans;
     if (args.logoStorageId !== undefined) patch.logoStorageId = args.logoStorageId;
     if (args.coverPhotoStorageId !== undefined) patch.coverPhotoStorageId = args.coverPhotoStorageId;
 
     await ctx.db.patch(gym._id, patch);
+  },
+});
+
+export const getGymPublicPage = query({
+  args: { gymId: v.id("gyms") },
+  handler: async (ctx, args) => {
+    const gym = await ctx.db.get(args.gymId);
+    if (!gym || !gym.isActive) return null;
+
+    const logoUrl = gym.logoStorageId
+      ? await ctx.storage.getUrl(gym.logoStorageId)
+      : null;
+    const coverPhotoUrl = gym.coverPhotoStorageId
+      ? await ctx.storage.getUrl(gym.coverPhotoStorageId)
+      : null;
+
+    const affiliations = await ctx.db
+      .query("trainerGymAffiliation")
+      .withIndex("by_gymId_and_isActive", (q) =>
+        q.eq("gymId", args.gymId).eq("isActive", true),
+      )
+      .take(20);
+
+    const trainers = await Promise.all(
+      affiliations.map(async (aff) => {
+        const user = await ctx.db.get(aff.gymTrainerUserId);
+        return {
+          userId: aff.gymTrainerUserId,
+          name: user?.name ?? user?.email ?? "Trainer",
+          affiliationRole: aff.affiliationRole,
+        };
+      }),
+    );
+
+    const allProducts = await ctx.db
+      .query("products")
+      .withIndex("by_sellerGymId", (q) => q.eq("sellerGymId", args.gymId))
+      .take(100);
+
+    const products = await Promise.all(
+      allProducts
+        .filter((p) => p.isActive)
+        .slice(0, 50)
+        .map(async (p) => {
+          const imageUrl = p.imageStorageId
+            ? await ctx.storage.getUrl(p.imageStorageId)
+            : null;
+          return {
+            _id: p._id,
+            name: p.name,
+            description: p.description,
+            priceJod: p.priceJod,
+            category: p.category,
+            imageUrl,
+          };
+        }),
+    );
+
+    return {
+      gym: {
+        _id: gym._id,
+        name: gym.name,
+        bio: gym.bio,
+        location: gym.location,
+        city: gym.city,
+        genderType: gym.genderType,
+        openingHours: gym.openingHours,
+        genderSections: gym.genderSections,
+        classSchedules: gym.classSchedules,
+        facilities: gym.facilities,
+        pricingPlans: gym.pricingPlans,
+        logoUrl,
+        coverPhotoUrl,
+        isActive: gym.isActive,
+        createdAt: gym.createdAt,
+      },
+      trainers,
+      products,
+    };
   },
 });

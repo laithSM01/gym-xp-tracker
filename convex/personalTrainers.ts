@@ -182,3 +182,65 @@ export const updateTrainerProfile = mutation({
     await ctx.db.patch(profile._id, patch);
   },
 });
+
+export const getTrainerPublicPage = query({
+  args: { trainerProfileId: v.id("personalTrainers") },
+  handler: async (ctx, args) => {
+    const profile = await ctx.db.get(args.trainerProfileId);
+    if (!profile || !profile.isActive) return null;
+
+    const user = await ctx.db.get(profile.userId);
+    const name = user?.name ?? user?.email ?? "Trainer";
+
+    const profilePhotoUrl = profile.profilePhotoStorageId
+      ? await ctx.storage.getUrl(profile.profilePhotoStorageId)
+      : null;
+    const coverPhotoUrl = profile.coverPhotoStorageId
+      ? await ctx.storage.getUrl(profile.coverPhotoStorageId)
+      : null;
+
+    const allProducts = await ctx.db
+      .query("products")
+      .withIndex("by_sellerTrainerProfileId", (q) =>
+        q.eq("sellerTrainerProfileId", args.trainerProfileId),
+      )
+      .take(100);
+
+    const products = await Promise.all(
+      allProducts
+        .filter((p) => p.isActive)
+        .slice(0, 50)
+        .map(async (p) => {
+          const imageUrl = p.imageStorageId
+            ? await ctx.storage.getUrl(p.imageStorageId)
+            : null;
+          return {
+            _id: p._id,
+            name: p.name,
+            description: p.description,
+            priceJod: p.priceJod,
+            category: p.category,
+            imageUrl,
+          };
+        }),
+    );
+
+    return {
+      trainerProfile: {
+        _id: profile._id,
+        userId: profile.userId,
+        bio: profile.bio,
+        certifications: profile.certifications,
+        specializations: profile.specializations,
+        yearsOfExperience: profile.yearsOfExperience,
+        instagramHandle: profile.instagramHandle,
+        profilePhotoUrl,
+        coverPhotoUrl,
+        isActive: profile.isActive,
+        createdAt: profile.createdAt,
+      },
+      name,
+      products,
+    };
+  },
+});

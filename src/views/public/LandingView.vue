@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { useLandingPage } from '@/composables/useLandingPage'
+import type { PricingPlan } from '@/services/gyms.service'
 
 const { gyms, trainers } = useLandingPage()
 
-function formatPriceRange(min: number, max: number): string {
-  return `${min}–${max} JOD/mo`
+function formatPlans(plans: PricingPlan[]): string {
+  if (!plans?.length) return 'See pricing'
+  const min = Math.min(...plans.map((p) => p.priceJod))
+  return `From ${min} JOD/mo`
 }
 </script>
 
@@ -42,9 +45,10 @@ function formatPriceRange(min: number, max: number): string {
     </div>
 
     <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div
+      <RouterLink
         v-for="gym in gyms"
         :key="gym._id"
+        :to="`/gym/${gym._id}`"
         class="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-3 hover:shadow-md transition-shadow"
       >
         <div>
@@ -71,9 +75,9 @@ function formatPriceRange(min: number, max: number): string {
         </div>
 
         <div class="mt-auto pt-2 border-t border-gray-100 text-sm font-medium text-purple-700">
-          {{ formatPriceRange(gym.priceRange.min, gym.priceRange.max) }}
+          {{ formatPlans(gym.pricingPlans) }}
         </div>
-      </div>
+      </RouterLink>
     </div>
   </section>
 
@@ -86,9 +90,10 @@ function formatPriceRange(min: number, max: number): string {
     </div>
 
     <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div
+      <RouterLink
         v-for="trainer in trainers"
         :key="trainer._id"
+        :to="`/trainer/${trainer._id}`"
         class="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-3 hover:shadow-md transition-shadow"
       >
         <div class="flex items-center gap-3">
@@ -124,10 +129,11 @@ function formatPriceRange(min: number, max: number): string {
           target="_blank"
           rel="noopener noreferrer"
           class="text-xs text-gray-400 hover:text-gray-600 transition-colors mt-auto"
+          @click.stop
         >
           @{{ trainer.instagramHandle }}
         </a>
-      </div>
+      </RouterLink>
     </div>
   </section>
 </template>
