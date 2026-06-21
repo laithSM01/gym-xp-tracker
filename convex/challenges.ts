@@ -80,7 +80,7 @@ export const addChallenge = mutation({
       )
       .unique();
     if (!user) throw new Error("User not found");
-    if (user.role !== "trainer") throw new Error("Only trainers can assign challenges");
+    if (user.role !== "trainer" && user.role !== "gym_trainer") throw new Error("Only trainers can assign challenges");
 
     const client = await ctx.db.get(args.assignedTo);
     if (!client || client.trainerId !== user._id) {

@@ -273,6 +273,7 @@ export const getGymPublicPage = query({
         return {
           userId: aff.gymTrainerUserId,
           name: user?.name ?? user?.email ?? "Trainer",
+          email: user?.email ?? null,
           affiliationRole: aff.affiliationRole,
         };
       }),

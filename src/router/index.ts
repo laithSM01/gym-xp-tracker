@@ -92,6 +92,10 @@ const router = createRouter({
           path: 'gym-trainer/dashboard',
           component: () => import('@/views/gym-trainer/GymTrainerDashboardView.vue'),
         },
+        {
+          path: 'gym-trainer/client/:clientId',
+          component: () => import('@/views/gym-trainer/GymTrainerClientDetailView.vue'),
+        },
       ],
     },
   ],

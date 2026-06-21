@@ -134,6 +134,7 @@ export interface GymDashboardData {
 export interface GymPublicTrainer {
   userId: Id<'users'>
   name: string
+  email: string | null
   affiliationRole: 'trainer' | 'head_trainer'
 }
 

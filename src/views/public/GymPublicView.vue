@@ -479,7 +479,8 @@ async function handleJoin() {
               </div>
               <div>
                 <h2 class="text-xl font-bold text-gray-900">{{ selectedTrainer.name }}</h2>
-                <span class="inline-block mt-1 text-xs px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 font-semibold capitalize">
+                <p v-if="selectedTrainer.email" class="text-sm text-gray-400 mt-0.5">{{ selectedTrainer.email }}</p>
+                <span class="inline-block mt-2 text-xs px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 font-semibold capitalize">
                   {{ selectedTrainer.affiliationRole.replace('_', ' ') }}
                 </span>
               </div>
