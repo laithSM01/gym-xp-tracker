@@ -14,7 +14,13 @@ export const listPublic = query({
     return await Promise.all(
       profiles.map(async (profile) => {
         const user = await ctx.db.get(profile.userId);
-        return { ...profile, name: user?.name ?? "Trainer" };
+        return {
+          ...profile,
+          name: user?.name ?? "Trainer",
+          profilePhotoUrl: profile.profilePhotoStorageId
+            ? await ctx.storage.getUrl(profile.profilePhotoStorageId)
+            : null,
+        };
       }),
     );
   },

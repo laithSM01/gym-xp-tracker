@@ -35,6 +35,8 @@ export interface GymProfile {
   pricingPlans: PricingPlan[]
   logoStorageId?: Id<'_storage'>
   coverPhotoStorageId?: Id<'_storage'>
+  logoUrl?: string | null
+  coverPhotoUrl?: string | null
   isActive: boolean
   trainersUsed: number
   clientsAdded: number

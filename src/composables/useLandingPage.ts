@@ -1,29 +1,36 @@
-import { ref, onUnmounted, inject } from 'vue'
-import type { ConvexClient } from 'convex/browser'
-import { api } from '../../convex/_generated/api'
-import type { Doc } from '../../convex/_generated/dataModel'
-
-type GymDoc = Doc<'gyms'>
-type TrainerPublic = Doc<'personalTrainers'> & { name: string }
+import { ref, computed, inject } from 'vue'
+import type { GymService } from '@/services/gyms.service'
+import type { TrainerService } from '@/services/trainers.service'
 
 export function useLandingPage() {
-  const convex = inject<ConvexClient>('convex')!
+  const gymsService = inject<GymService>('gymsService')!
+  const trainersService = inject<TrainerService>('trainersService')!
 
-  const gyms = ref<GymDoc[]>([])
-  const trainers = ref<TrainerPublic[]>([])
+  const allGyms = gymsService.listPublic()
+  const allTrainers = trainersService.listPublic()
 
-  const unsubGyms = convex.onUpdate(api.gyms.listPublic, {}, (data) => {
-    gyms.value = data ?? []
+  const search = ref('')
+  const selectedCity = ref('all')
+  const activeTab = ref<'all' | 'gyms' | 'trainers'>('all')
+
+  const filteredGyms = computed(() => {
+    if (activeTab.value === 'trainers') return []
+    const q = search.value.toLowerCase()
+    return allGyms.value.filter((g) => {
+      if (selectedCity.value !== 'all' && g.city !== selectedCity.value) return false
+      if (q && !g.name.toLowerCase().includes(q) && !g.city.toLowerCase().includes(q)) return false
+      return true
+    })
   })
 
-  const unsubTrainers = convex.onUpdate(api.personalTrainers.listPublic, {}, (data) => {
-    trainers.value = (data ?? []) as TrainerPublic[]
+  const filteredTrainers = computed(() => {
+    if (activeTab.value === 'gyms') return []
+    const q = search.value.toLowerCase()
+    return allTrainers.value.filter((t) => {
+      if (q && !t.name.toLowerCase().includes(q)) return false
+      return true
+    })
   })
 
-  onUnmounted(() => {
-    unsubGyms()
-    unsubTrainers()
-  })
-
-  return { gyms, trainers }
+  return { filteredGyms, filteredTrainers, search, selectedCity, activeTab }
 }

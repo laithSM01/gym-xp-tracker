@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { watch, inject } from 'vue'
-import { useRouter, RouterLink } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { useClientDashboard, tierConfig, tierMin, tierMax, xpProgress, formatDate } from '@/composables/useClientDashboard'
 import type { ClientService } from '@/services/clients.service'
 import { useJoinRequests } from '@/composables/useJoinRequests'
@@ -262,12 +262,6 @@ const STATUS_LABELS: Record<string, string> = {
       <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
         <div class="flex items-center justify-between mb-5">
           <h2 class="text-base font-semibold text-gray-900">Gym &amp; Trainer Requests</h2>
-          <RouterLink
-            to="/client/browse"
-            class="text-sm font-semibold text-purple-600 hover:text-purple-800 transition-colors"
-          >
-            Find a Gym or Trainer →
-          </RouterLink>
         </div>
 
         <p v-if="respondError" class="text-sm text-red-600 mb-3">{{ respondError }}</p>
@@ -331,7 +325,6 @@ const STATUS_LABELS: Record<string, string> = {
           </div>
           <p v-else-if="outbound.length === 0" class="text-sm text-gray-400 py-4 text-center">
             No requests sent yet.
-            <RouterLink to="/client/browse" class="text-purple-600 hover:underline">Browse gyms and trainers</RouterLink>
           </p>
           <ul v-else class="flex flex-col divide-y divide-gray-100">
             <li

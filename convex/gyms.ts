@@ -19,11 +19,18 @@ const pricingPlanValidator = v.object({
 export const listPublic = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db
+    const gyms = await ctx.db
       .query("gyms")
       .withIndex("by_isActive", (q) => q.eq("isActive", true))
       .order("desc")
       .take(20);
+    return Promise.all(
+      gyms.map(async (gym) => ({
+        ...gym,
+        logoUrl: gym.logoStorageId ? await ctx.storage.getUrl(gym.logoStorageId) : null,
+        coverPhotoUrl: gym.coverPhotoStorageId ? await ctx.storage.getUrl(gym.coverPhotoStorageId) : null,
+      })),
+    );
   },
 });
 

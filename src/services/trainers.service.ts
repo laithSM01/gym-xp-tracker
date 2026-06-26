@@ -30,6 +30,7 @@ export interface CreateTrainerInput {
 
 export interface TrainerPublicProfile extends TrainerProfile {
   name: string
+  profilePhotoUrl?: string | null
 }
 
 export interface TrainerDashboardClient {
