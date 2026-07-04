@@ -29,6 +29,17 @@ const router = createRouter({
       path: '/invite/gym',
       component: () => import('@/views/public/InviteAcceptView.vue'),
     },
+    // Client dashboard — full-screen layout (no AppLayout header)
+    {
+      path: '/',
+      component: () => import('@/layouts/ClientLayout.vue'),
+      children: [
+        {
+          path: 'client/dashboard',
+          component: () => import('@/views/client/ClientDashboardView.vue'),
+        },
+      ],
+    },
     // Public profile pages — no auth required
     {
       path: '/gym/:gymId',
@@ -55,10 +66,6 @@ const router = createRouter({
         {
           path: 'trainer/setup',
           component: () => import('@/views/trainer/TrainerSetupView.vue'),
-        },
-        {
-          path: 'client/dashboard',
-          component: () => import('@/views/client/ClientDashboardView.vue'),
         },
         {
           path: 'client/setup',

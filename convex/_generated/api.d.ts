@@ -25,6 +25,7 @@ import type * as starterPrograms from "../starterPrograms.js";
 import type * as storage from "../storage.js";
 import type * as subscriptionLimits from "../subscriptionLimits.js";
 import type * as users from "../users.js";
+import type * as workoutSessions from "../workoutSessions.js";
 
 import type {
   ApiFromModules,
@@ -50,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   storage: typeof storage;
   subscriptionLimits: typeof subscriptionLimits;
   users: typeof users;
+  workoutSessions: typeof workoutSessions;
 }>;
 
 /**

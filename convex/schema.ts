@@ -329,4 +329,16 @@ export default defineSchema({
     .index("by_gymId", ["gymId"])
     .index("by_gymId_and_status", ["gymId", "status"])
     .index("by_email", ["invitedEmail"]),
+
+  workoutSessions: defineTable({
+    clientId: v.id("clients"),
+    programId: v.optional(v.id("programs")),
+    dayIndex: v.number(),
+    dateKey: v.string(),       // 'YYYY-MM-DD' UTC — dedup key
+    xpAwarded: v.number(),
+    exerciseCount: v.number(),
+    completedAt: v.number(),
+  })
+    .index("by_clientId", ["clientId"])
+    .index("by_client_date_day", ["clientId", "dateKey", "dayIndex"]),
 });

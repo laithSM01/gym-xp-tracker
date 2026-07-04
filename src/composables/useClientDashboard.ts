@@ -39,6 +39,16 @@ export function useClientDashboard() {
     (data) => { programs.value = data as Program[] | null },
   )
 
+  const todayDateKey = new Date().toISOString().substring(0, 10)
+  const todayCompletedDayIndices = ref<number[]>([])
+  const claimingSession = ref(false)
+
+  const { unsubscribe: unsubSessions } = convex.onUpdate(
+    api.workoutSessions.getTodaySessions,
+    { dateKey: todayDateKey },
+    (data) => { todayCompletedDayIndices.value = (data as number[]) ?? [] },
+  )
+
   let unsubNutritionPlan: (() => void) | null = null
 
   watch(profile, (p) => {
@@ -58,6 +68,7 @@ export function useClientDashboard() {
     unsubChallenges()
     unsubNutritionPlan?.()
     unsubPrograms()
+    unsubSessions()
   })
 
   const recentMeasurements = computed(() => measurements.value?.slice(0, 5) ?? [])
@@ -76,6 +87,25 @@ export function useClientDashboard() {
     }
   }
 
+  async function completeSession(
+    programId: Id<'programs'> | undefined,
+    dayIndex: number,
+    exerciseCount: number,
+  ): Promise<number> {
+    claimingSession.value = true
+    try {
+      const xpAwarded = await convex.mutation(api.workoutSessions.completeSession, {
+        programId,
+        dayIndex,
+        exerciseCount,
+        dateKey: todayDateKey,
+      })
+      return xpAwarded as number
+    } finally {
+      claimingSession.value = false
+    }
+  }
+
   return {
     data: {
       profile,
@@ -85,11 +115,14 @@ export function useClientDashboard() {
       programs,
       recentMeasurements,
       completingChallengeId,
+      todayCompletedDayIndices,
+      claimingSession,
     },
     loading: isLoading,
     error: null,
     actions: {
       completeChallenge,
+      completeSession,
     },
   }
 }
