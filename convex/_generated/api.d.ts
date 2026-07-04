@@ -21,6 +21,7 @@ import type * as personalTrainers from "../personalTrainers.js";
 import type * as products from "../products.js";
 import type * as programs from "../programs.js";
 import type * as seed from "../seed.js";
+import type * as starterPrograms from "../starterPrograms.js";
 import type * as storage from "../storage.js";
 import type * as subscriptionLimits from "../subscriptionLimits.js";
 import type * as users from "../users.js";
@@ -45,6 +46,7 @@ declare const fullApi: ApiFromModules<{
   products: typeof products;
   programs: typeof programs;
   seed: typeof seed;
+  starterPrograms: typeof starterPrograms;
   storage: typeof storage;
   subscriptionLimits: typeof subscriptionLimits;
   users: typeof users;
