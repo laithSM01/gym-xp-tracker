@@ -124,6 +124,55 @@ export const getClientPrograms = query({
   },
 });
 
+export const getTrainerProgramsBoard = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+    if (!user || user.role !== "trainer") return null;
+
+    const clientRows = await ctx.db
+      .query("clients")
+      .withIndex("by_trainerId", (q) => q.eq("trainerId", user._id))
+      .take(100);
+
+    const board = await Promise.all(
+      clientRows.map(async (client) => {
+        const program = await ctx.db
+          .query("programs")
+          .withIndex("by_clientId_and_status", (q) =>
+            q.eq("clientId", client._id).eq("status", "active"),
+          )
+          .first();
+        if (!program) return null;
+
+        const clientUser = await ctx.db.get(client.userId);
+        return {
+          clientId: client._id,
+          clientName: clientUser?.name ?? clientUser?.email ?? "Unknown",
+          goal: client.goal,
+          program: {
+            _id: program._id,
+            title: program.title,
+            startDate: program.startDate,
+            endDate: program.endDate,
+            sessionsPerWeek: program.weeklySchedule.length,
+          },
+        };
+      }),
+    );
+
+    return board.filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+  },
+});
+
 export const getMyPrograms = query({
   args: {},
   handler: async (ctx) => {

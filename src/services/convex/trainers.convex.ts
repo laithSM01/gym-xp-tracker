@@ -9,6 +9,7 @@ import type {
   CreateTrainerInput,
   TrainerDashboardData,
   TrainerPublicPageData,
+  TrainerProgramsBoardEntry,
 } from '../trainers.service'
 
 export class ConvexTrainersService implements TrainerService {
@@ -34,6 +35,15 @@ export class ConvexTrainersService implements TrainerService {
     })
     onUnmounted(() => unsub())
     return dashboard
+  }
+
+  getProgramsBoard() {
+    const board = ref<TrainerProgramsBoardEntry[] | null | undefined>(undefined)
+    const unsub = this.client.onUpdate(api.programs.getTrainerProgramsBoard, {}, (data) => {
+      board.value = (data as TrainerProgramsBoardEntry[] | null) ?? null
+    })
+    onUnmounted(() => unsub())
+    return board
   }
 
   listPublic() {

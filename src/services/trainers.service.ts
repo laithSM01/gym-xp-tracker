@@ -82,9 +82,23 @@ export interface TrainerPublicPageData {
   products: ProductSummary[]
 }
 
+export interface TrainerProgramsBoardEntry {
+  clientId: Id<'clients'>
+  clientName: string
+  goal: string
+  program: {
+    _id: Id<'programs'>
+    title: string
+    startDate: number
+    endDate: number
+    sessionsPerWeek: number
+  }
+}
+
 export interface TrainerService {
   getMyTrainerProfile(): Ref<TrainerProfile | null | undefined>
   getTrainerDashboard(): Ref<TrainerDashboardData | null | undefined>
+  getProgramsBoard(): Ref<TrainerProgramsBoardEntry[] | null | undefined>
   listPublic(): Ref<TrainerPublicProfile[]>
   getTrainerPublicPage(trainerProfileId: Id<'personalTrainers'>): Ref<TrainerPublicPageData | null | undefined>
   createTrainerProfile(data: CreateTrainerInput): Promise<Id<'personalTrainers'>>

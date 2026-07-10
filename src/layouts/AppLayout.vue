@@ -30,7 +30,7 @@ const roleBadgeClass: Record<UserRole, string> = {
     <header class="h-16 bg-white border-b border-gray-200 px-6 flex items-center">
       <!-- Left: logo -->
       <div class="flex items-center gap-2 w-48">
-        <span class="text-xl font-black tracking-tight text-gray-900">Gym<span class="text-purple-600">XP</span></span>
+        <span class="text-xl font-black tracking-tight text-gray-900">Gym<span class="text-brand-500">XP</span></span>
       </div>
 
       <!-- Center: user name + role badge -->
