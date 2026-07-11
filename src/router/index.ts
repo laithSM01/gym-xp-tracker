@@ -89,6 +89,47 @@ const router = createRouter({
         },
       ],
     },
+    // Gym owner routes — persistent dark sidebar app-shell
+    {
+      path: '/',
+      component: () => import('@/layouts/GymLayout.vue'),
+      children: [
+        {
+          path: 'gym/dashboard',
+          component: () => import('@/views/gym/GymDashboardView.vue'),
+        },
+        {
+          path: 'gym/trainers',
+          component: () => import('@/views/gym/GymTrainersView.vue'),
+        },
+        {
+          path: 'gym/clients',
+          component: () => import('@/views/gym/GymClientsView.vue'),
+        },
+        {
+          path: 'gym/products',
+          component: () => import('@/views/gym/GymProductsView.vue'),
+        },
+        {
+          path: 'gym/requests',
+          component: () => import('@/views/gym/GymRequestsView.vue'),
+        },
+        {
+          path: 'gym/edit',
+          component: () => import('@/views/gym/GymEditView.vue'),
+        },
+        {
+          path: 'gym/billing',
+          component: () => import('@/views/trainer/ComingSoonView.vue'),
+          meta: { title: 'Billing', description: 'Payment history and invoicing are coming soon.' },
+        },
+        {
+          path: 'gym/reports',
+          component: () => import('@/views/trainer/ComingSoonView.vue'),
+          meta: { title: 'Reports', description: 'Analytics and performance reports are coming soon.' },
+        },
+      ],
+    },
     // Authenticated routes
     {
       path: '/',
@@ -111,16 +152,8 @@ const router = createRouter({
           component: () => import('@/views/nutritionist/ClientNutritionView.vue'),
         },
         {
-          path: 'gym/dashboard',
-          component: () => import('@/views/gym/GymDashboardView.vue'),
-        },
-        {
           path: 'gym/setup',
           component: () => import('@/views/gym/GymSetupView.vue'),
-        },
-        {
-          path: 'gym/edit',
-          component: () => import('@/views/gym/GymEditView.vue'),
         },
         {
           path: 'gym-trainer/dashboard',

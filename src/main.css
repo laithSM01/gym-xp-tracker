@@ -5,4 +5,14 @@
   --color-brand-100: #d9f0ec;
   --color-brand-500: #3fb6a8;
   --color-brand-600: #35a096;
+
+  /* Gym owner dashboard — dark theme tokens */
+  --color-ink-950: #0b0d14;
+  --color-ink-900: #10141e;
+  --color-ink-800: #171c29;
+  --color-ink-700: #1f2534;
+  --color-ink-600: #2a3143;
+  --color-ink-400: #6b7385;
+  --color-accent-500: #f97316;
+  --color-accent-600: #ea6a0d;
 }

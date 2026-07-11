@@ -3,6 +3,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { clerkPlugin } from '@clerk/vue'
 import { ConvexClient } from 'convex/browser'
+import VueApexCharts from 'vue3-apexcharts'
 import router from './router'
 import App from './App.vue'
 import { ConvexGymsService } from './services/convex/gyms.convex'
@@ -23,6 +24,7 @@ app.use(router)
 app.use(clerkPlugin, {
   publishableKey: import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
 })
+app.use(VueApexCharts)
 app.provide('convex', convex)
 app.provide('gymsService', new ConvexGymsService(convex))
 app.provide('trainersService', new ConvexTrainersService(convex))
