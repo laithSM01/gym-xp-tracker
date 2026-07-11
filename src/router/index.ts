@@ -46,14 +46,18 @@ const router = createRouter({
       name: 'gymPublicProfile',
       component: () => import('@/views/public/GymPublicView.vue'),
     },
-    // Authenticated routes
+    // Trainer routes — persistent sidebar app-shell
     {
       path: '/',
-      component: () => import('@/layouts/AppLayout.vue'),
+      component: () => import('@/layouts/TrainerLayout.vue'),
       children: [
         {
           path: 'trainer/dashboard',
           component: () => import('@/views/trainer/TrainerDashboardView.vue'),
+        },
+        {
+          path: 'trainer/clients',
+          component: () => import('@/views/trainer/ClientsView.vue'),
         },
         {
           path: 'trainer/client/:clientId',
@@ -63,6 +67,33 @@ const router = createRouter({
           path: 'trainer/new-client',
           component: () => import('@/views/trainer/NewClientView.vue'),
         },
+        {
+          path: 'trainer/schedule',
+          component: () => import('@/views/trainer/ComingSoonView.vue'),
+          meta: { title: 'Schedule', description: 'Session scheduling and calendar booking are coming soon.' },
+        },
+        {
+          path: 'trainer/notifications',
+          component: () => import('@/views/trainer/ComingSoonView.vue'),
+          meta: { title: 'Notifications', description: 'Your notifications feed is coming soon.' },
+        },
+        {
+          path: 'trainer/messages',
+          component: () => import('@/views/trainer/ComingSoonView.vue'),
+          meta: { title: 'Messages', description: 'Direct messaging with clients is coming soon.' },
+        },
+        {
+          path: 'trainer/settings',
+          component: () => import('@/views/trainer/ComingSoonView.vue'),
+          meta: { title: 'Settings', description: 'Profile and account settings are coming soon.' },
+        },
+      ],
+    },
+    // Authenticated routes
+    {
+      path: '/',
+      component: () => import('@/layouts/AppLayout.vue'),
+      children: [
         {
           path: 'trainer/setup',
           component: () => import('@/views/trainer/TrainerSetupView.vue'),

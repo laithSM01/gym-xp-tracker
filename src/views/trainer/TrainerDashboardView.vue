@@ -1,32 +1,63 @@
 <script setup lang="ts">
 import { computed, ref, watch, inject } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { tierConfig, tierMax, xpProgress } from '@/utils/xp'
+import { UserButton } from '@clerk/vue'
+import { tierConfig, xpProgress } from '@/utils/xp'
 import type { TrainerService } from '@/services/trainers.service'
 import type { ProductsService, ProductCategory } from '@/services/products.service'
 import type { Id } from '../../../convex/_generated/dataModel'
+import type { Tier } from '@/types/client'
 import { useIncomingRequests } from '@/composables/useIncomingRequests'
 import { GOAL_OPTIONS } from '@/composables/useNewClient'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import Badge from '@/components/ui/Badge.vue'
 import ProgressBar from '@/components/ui/ProgressBar.vue'
+import StatTile from '@/components/ui/StatTile.vue'
 import ToggleSwitch from '@/components/ui/ToggleSwitch.vue'
 import FormField from '@/components/ui/FormField.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import ClientCard from '@/components/trainer/ClientCard.vue'
 import { inputClass, selectClass, textareaClass } from '@/components/ui/formStyles'
 
 const trainersService = inject<TrainerService>('trainersService')!
 const router = useRouter()
 const dashboard = trainersService.getTrainerDashboard()
 
-// Quick-action tiles
 function scrollToSection(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 // Training board — active programs grouped by client goal
 const programsBoard = trainersService.getProgramsBoard()
+const activeProgramsCount = computed(() => programsBoard.value?.length ?? 0)
+
+// Client Progress Overview — derived entirely from already-loaded dashboard data
+const TIER_ORDER: Tier[] = ['beginner', 'novice', 'intermediate', 'advanced', 'elite']
+
+const tierDistribution = computed(() => {
+  const clients = dashboard.value?.clients ?? []
+  const total = clients.length
+  return TIER_ORDER.map((tier) => {
+    const count = clients.filter((c) => c.currentTier === tier).length
+    return {
+      tier,
+      label: tierConfig[tier].label,
+      barClass: tierConfig[tier].bar,
+      count,
+      percent: total > 0 ? Math.round((count / total) * 100) : 0,
+    }
+  })
+})
+
+const avgTierProgress = computed(() => {
+  const clients = dashboard.value?.clients ?? []
+  if (clients.length === 0) return 0
+  const sum = clients.reduce((acc, c) => acc + xpProgress(c.currentXP, c.currentTier), 0)
+  return Math.round(sum / clients.length)
+})
+
+const topPerformer = computed(() => dashboard.value?.clients[0] ?? null)
 
 const COLUMN_CHIP_CLASSES = [
   'bg-brand-100 text-brand-600',
@@ -201,76 +232,111 @@ const {
 
     <template v-else-if="dashboard">
       <!-- Header -->
-      <div class="flex items-start justify-between gap-4 mb-8">
+      <div class="flex items-center justify-between gap-4 mb-8">
         <div>
-          <h1 class="text-2xl font-bold text-slate-800">Welcome back, {{ dashboard.trainerName }}</h1>
+          <h1 class="text-2xl font-bold text-slate-800">Welcome, {{ dashboard.trainerName }} 👋</h1>
           <p class="mt-1 text-slate-400">
             You have
             <span class="font-semibold text-slate-600">{{ enrolledCount }}</span>
             active client{{ enrolledCount !== 1 ? 's' : '' }}
           </p>
         </div>
-        <RouterLink to="/trainer/new-client">
-          <AppButton>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-            </svg>
-            New Client
-          </AppButton>
-        </RouterLink>
+        <UserButton />
       </div>
 
-      <!-- Quick-action tiles -->
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <RouterLink to="/trainer/new-client">
-          <BaseCard padding="p-4" class="h-full hover:shadow-md transition-shadow duration-150">
-            <div class="flex items-center gap-3">
-              <div class="h-10 w-10 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center shrink-0">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                </svg>
-              </div>
-              <span class="text-sm font-semibold text-slate-800">New Client</span>
-            </div>
-          </BaseCard>
-        </RouterLink>
-        <button type="button" class="text-left" @click="scrollToSection('clients-section')">
-          <BaseCard padding="p-4" class="h-full hover:shadow-md transition-shadow duration-150">
-            <div class="flex items-center gap-3">
-              <div class="h-10 w-10 rounded-xl bg-violet-100 text-violet-500 flex items-center justify-center shrink-0">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6-4a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-              </div>
-              <span class="text-sm font-semibold text-slate-800">Clients</span>
-            </div>
-          </BaseCard>
-        </button>
-        <button type="button" class="text-left" @click="scrollToSection('training-section')">
-          <BaseCard padding="p-4" class="h-full hover:shadow-md transition-shadow duration-150">
-            <div class="flex items-center gap-3">
-              <div class="h-10 w-10 rounded-xl bg-emerald-100 text-emerald-500 flex items-center justify-center shrink-0">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <span class="text-sm font-semibold text-slate-800">Training</span>
-            </div>
-          </BaseCard>
-        </button>
-        <button type="button" class="text-left" @click="scrollToSection('products-section')">
-          <BaseCard padding="p-4" class="h-full hover:shadow-md transition-shadow duration-150">
-            <div class="flex items-center gap-3">
-              <div class="h-10 w-10 rounded-xl bg-amber-100 text-amber-500 flex items-center justify-center shrink-0">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                </svg>
-              </div>
-              <span class="text-sm font-semibold text-slate-800">Products</span>
-            </div>
-          </BaseCard>
-        </button>
+      <!-- Key Metrics -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <BaseCard>
+          <StatTile label="Total Clients" :value="dashboard.clients.length" tone="brand" size="lg">
+            <template #icon>
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6-4a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+            </template>
+          </StatTile>
+        </BaseCard>
+        <BaseCard>
+          <StatTile label="Active Programs" :value="activeProgramsCount" tone="violet" size="lg">
+            <template #icon>
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </template>
+          </StatTile>
+        </BaseCard>
       </div>
+
+      <!-- Client Progress Overview -->
+      <BaseCard class="mb-6">
+        <h2 class="text-base font-semibold text-slate-800 mb-4">Client Progress Overview</h2>
+
+        <EmptyState v-if="dashboard.clients.length === 0" message="No clients yet — progress breakdown will appear here." />
+
+        <template v-else>
+          <div class="flex flex-col gap-3 mb-5">
+            <div v-for="t in tierDistribution" :key="t.tier" class="flex items-center gap-3">
+              <span class="w-24 shrink-0 text-xs font-medium text-slate-500">{{ t.label }}</span>
+              <ProgressBar class="flex-1" :percent="t.percent" :bar-class="t.barClass" />
+              <span class="w-8 shrink-0 text-xs text-slate-400 text-right">{{ t.count }}</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-100">
+            <div>
+              <p class="text-xs text-slate-400">Active Clients</p>
+              <p class="text-lg font-bold text-slate-800">{{ enrolledCount }}/{{ dashboard.clients.length }}</p>
+            </div>
+            <div>
+              <p class="text-xs text-slate-400">Avg. Tier Progress</p>
+              <p class="text-lg font-bold text-slate-800">{{ avgTierProgress }}%</p>
+            </div>
+            <div>
+              <p class="text-xs text-slate-400">Top Performer</p>
+              <p class="text-lg font-bold text-slate-800 truncate">{{ topPerformer?.name ?? '—' }}</p>
+            </div>
+          </div>
+        </template>
+      </BaseCard>
+
+      <!-- Quick Actions -->
+      <BaseCard class="mb-6">
+        <h2 class="text-base font-semibold text-slate-800 mb-4">Quick Actions</h2>
+        <div class="flex flex-col divide-y divide-slate-100">
+          <RouterLink to="/trainer/new-client" class="flex items-center gap-3 py-3 first:pt-0 hover:bg-slate-50 -mx-2 px-2 rounded-xl transition-colors">
+            <div class="h-10 w-10 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center shrink-0">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-slate-800">Add Client</p>
+              <p class="text-xs text-slate-400">Add a new client to your list</p>
+            </div>
+          </RouterLink>
+          <button type="button" class="flex items-center gap-3 py-3 hover:bg-slate-50 -mx-2 px-2 rounded-xl transition-colors text-left" @click="scrollToSection('products-section')">
+            <div class="h-10 w-10 rounded-xl bg-amber-100 text-amber-500 flex items-center justify-center shrink-0">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-slate-800">Manage Products</p>
+              <p class="text-xs text-slate-400">Add or update items you sell</p>
+            </div>
+          </button>
+          <button type="button" class="flex items-center gap-3 py-3 last:pb-0 hover:bg-slate-50 -mx-2 px-2 rounded-xl transition-colors text-left" @click="scrollToSection('requests-section')">
+            <div class="h-10 w-10 rounded-xl bg-emerald-100 text-emerald-500 flex items-center justify-center shrink-0">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-slate-800">Review Requests</p>
+              <p class="text-xs text-slate-400">Approve or decline client join requests</p>
+            </div>
+          </button>
+        </div>
+      </BaseCard>
 
       <!-- Subscription -->
       <BaseCard class="mb-6">
@@ -312,7 +378,12 @@ const {
 
       <!-- Clients section -->
       <div id="clients-section" class="mb-8">
-        <h2 class="text-base font-semibold text-slate-800 mb-4">Clients</h2>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-base font-semibold text-slate-800">Clients</h2>
+          <RouterLink to="/trainer/clients" class="text-xs font-semibold text-brand-600 hover:text-brand-600/80 transition-colors">
+            View all
+          </RouterLink>
+        </div>
 
         <EmptyState
           v-if="dashboard.clients.length === 0"
@@ -320,43 +391,9 @@ const {
         />
 
         <div v-else class="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1">
-          <RouterLink
-            v-for="client in dashboard.clients"
-            :key="client._id"
-            :to="`/trainer/client/${client._id}`"
-            class="block shrink-0 w-64"
-          >
-            <BaseCard padding="p-5" class="h-full hover:shadow-md transition-shadow duration-150">
-              <!-- Name + tier badge -->
-              <div class="flex items-start justify-between gap-2 mb-1">
-                <span class="font-semibold text-slate-800 truncate">{{ client.name }}</span>
-                <Badge :badge-class="tierConfig[client.currentTier].badge">
-                  {{ tierConfig[client.currentTier].label }}
-                </Badge>
-              </div>
-
-              <!-- City -->
-              <p class="text-xs text-slate-400 mb-2">{{ client.city }}</p>
-
-              <!-- Goal -->
-              <p class="text-sm text-slate-500 mb-4 line-clamp-2">{{ client.goal }}</p>
-
-              <!-- XP bar -->
-              <div>
-                <div class="flex justify-between text-xs text-slate-400 mb-1">
-                  <span>{{ client.currentXP.toLocaleString() }} XP</span>
-                  <span v-if="client.currentTier !== 'elite'">
-                    {{ tierMax[client.currentTier].toLocaleString() }}
-                  </span>
-                  <span v-else class="text-green-500 font-semibold">MAX</span>
-                </div>
-                <ProgressBar
-                  :percent="xpProgress(client.currentXP, client.currentTier)"
-                  :bar-class="tierConfig[client.currentTier].bar"
-                />
-              </div>
-            </BaseCard>
-          </RouterLink>
+          <div v-for="client in dashboard.clients" :key="client._id" class="shrink-0 w-64">
+            <ClientCard :client="client" />
+          </div>
         </div>
       </div>
 

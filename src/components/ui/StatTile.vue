@@ -4,8 +4,9 @@ withDefaults(
     label: string
     value: string | number
     tone?: 'amber' | 'violet' | 'emerald' | 'pink' | 'brand'
+    size?: 'sm' | 'lg'
   }>(),
-  { tone: 'brand' },
+  { tone: 'brand', size: 'sm' },
 )
 
 const TONE_CLASSES: Record<string, string> = {
@@ -23,7 +24,12 @@ const TONE_CLASSES: Record<string, string> = {
       <slot name="icon" />
     </div>
     <div class="min-w-0">
-      <p class="font-bold text-slate-800 leading-tight text-sm truncate">{{ value }}</p>
+      <p
+        class="font-bold text-slate-800 leading-tight truncate"
+        :class="size === 'lg' ? 'text-2xl font-black' : 'text-sm'"
+      >
+        {{ value }}
+      </p>
       <p class="text-xs text-slate-400">{{ label }}</p>
     </div>
   </div>
