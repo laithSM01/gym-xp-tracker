@@ -197,20 +197,6 @@ export function useClientDetail(clientId: string) {
     })
   }
 
-  // Nutritionist access toggle
-  const isTogglingAccess = ref(false)
-
-  async function toggleNutritionistAccess(): Promise<void> {
-    isTogglingAccess.value = true
-    try {
-      await convex.mutation(api.clients.toggleNutritionistAccess, {
-        clientId: clientId as Id<'clients'>,
-      })
-    } finally {
-      isTogglingAccess.value = false
-    }
-  }
-
   // Update Goal
   async function updateGoal(newGoal: string): Promise<boolean> {
     try {
@@ -236,7 +222,6 @@ export function useClientDetail(clientId: string) {
       isLogging,
       logError,
       lastXPResult,
-      isTogglingAccess,
       isAddingChallenge,
       addChallengeError,
       addChallengeSuccess,
@@ -252,7 +237,6 @@ export function useClientDetail(clientId: string) {
     actions: {
       awardXP,
       logMeasurement,
-      toggleNutritionistAccess,
       addChallenge,
       createProgram,
       updateProgramStatus,

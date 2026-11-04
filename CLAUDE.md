@@ -47,31 +47,31 @@ Environment variables required: `VITE_CONVEX_URL`, `VITE_CLERK_PUBLISHABLE_KEY`,
 
 ## Database Schema
 
-**Existing tables** (trainer-client tracker):
-- `users` — roles: `trainer | client | nutritionist | gym_owner`
+**Core tables** (trainer-client tracker):
+- `users` — roles: `trainer | gym_trainer | client | gym_owner`
 - `clients` — `trainerId` is optional (gym-assigned clients may not have a trainer yet); `gymId` links to `gyms`
-- `challenges`, `xpLogs`, `programs`, `bodyMeasurements`, `nutritionPlans`
+- `challenges`, `xpLogs`, `programs`, `bodyMeasurements`, `workoutSessions`
 
-**Marketplace tables** (added 2026-06-14):
+**Gyms, trainer profiles and subscriptions:**
 - `gyms` — gym business profile; `ownerId → users` (role = gym_owner); indexes: `by_ownerId`, `by_city`, `by_isActive`
 - `personalTrainers` — extended trainer profile; `userId → users` (role = trainer); indexes: `by_userId`, `by_isActive`
-- `subscriptions` — plan (`trainer_solo | gym_starter | gym_pro`), AI generation budget counters, JOD pricing
-- `products` — marketplace items per gym/trainer; price in JOD, category enum
-- `orders` — product purchases; tracks `platformCutJod` (10–15%), `paymentGateway` (myfatoorah | cliq)
-- `joinRequests` — client ↔ gym/trainer pending approval flow
+- `subscriptions` — plan (`personal_trainer | gym_small | gym_medium | gym_large`), AI generation budget counters, JOD pricing
 - `trainerGymAffiliation` — many-to-many trainers ↔ gyms
+- `gymInvitations` — invite tokens for gym trainers
+
+The marketplace (`products`, `orders`, `joinRequests`, public gym/trainer pages) and the nutritionist role (`nutritionPlans`) were removed on 2026-11-05 to refocus on progress tracking for personal trainers and kids' academies.
 
 ## Routes
 
 | Path | Auth required | Component |
 |---|---|---|
-| `/` | No | `PublicLayout` → `LandingView` (gym + trainer listings) |
+| `/` | No | `PublicLayout` → `HomeView` (product pitch for trainers and academies) |
 | `/sign-in` | No | `AuthLayout` (Clerk) |
 | `/onboarding` | No | `OnboardingView` (role selection) |
 | `/trainer/*` | Yes | Trainer dashboard + client management |
 | `/client/*` | Yes | Client dashboard |
-| `/nutritionist/*` | Yes | Nutritionist dashboard |
-| `/gym/dashboard` | Yes | Gym owner dashboard (stub) |
+| `/gym/*` | Yes | Gym owner dashboard, trainers, clients, settings |
+| `/gym-trainer/*` | Yes | Gym trainer dashboard + client detail |
 
 ## Frontend Architecture Rule — Service Layer (MANDATORY)
 

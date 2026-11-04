@@ -13,7 +13,6 @@ export default defineSchema({
       v.literal("trainer"),      // personal trainer — independent, marketplace listing
       v.literal("gym_trainer"),  // gym staff — invited by gym owner, works within one gym
       v.literal("client"),
-      v.literal("nutritionist"),
       v.literal("gym_owner"),
     ),
     createdAt: v.optional(v.number()),
@@ -53,7 +52,6 @@ export default defineSchema({
       v.literal("advanced"),
       v.literal("elite"),
     ),
-    nutritionistAccess: v.optional(v.boolean()),
     createdAt: v.number(),
   })
     .index("by_userId", ["userId"])
@@ -121,27 +119,7 @@ export default defineSchema({
     timestamp: v.number(),
   }).index("by_clientId", ["clientId"]),
 
-  nutritionPlans: defineTable({
-    clientId: v.id("clients"),
-    nutritionistId: v.id("users"),
-    meals: v.array(
-      v.object({
-        name: v.string(),
-        calories: v.number(),
-        protein: v.number(),
-        carbs: v.number(),
-        fat: v.number(),
-      }),
-    ),
-    totalCalories: v.number(),
-    notes: v.optional(v.string()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("by_clientId", ["clientId"])
-    .index("by_nutritionistId", ["nutritionistId"]),
-
-  // ─── Marketplace tables ───────────────────────────────────────────────────────
+  // ─── Gyms, trainer profiles and subscriptions ────────────────────────────────
 
   gyms: defineTable({
     ownerId: v.id("users"), // role === "gym_owner"
@@ -187,7 +165,6 @@ export default defineSchema({
     // Lifetime usage counters — never decrement
     trainersUsed: v.number(),
     clientsAdded: v.number(),
-    productsListed: v.number(),
     createdAt: v.number(),
   })
     .index("by_ownerId", ["ownerId"])
@@ -206,7 +183,6 @@ export default defineSchema({
     isActive: v.boolean(),
     // Lifetime usage counters — never decrement
     clientsAdded: v.number(),
-    productsListed: v.number(),
     createdAt: v.number(),
   })
     .index("by_userId", ["userId"])
@@ -234,69 +210,6 @@ export default defineSchema({
   })
     .index("by_gymId", ["gymId"])
     .index("by_trainerProfileId", ["trainerProfileId"]),
-
-  products: defineTable({
-    sellerGymId: v.optional(v.id("gyms")),
-    sellerTrainerProfileId: v.optional(v.id("personalTrainers")),
-    name: v.string(),
-    description: v.string(),
-    priceJod: v.number(),
-    category: v.union(
-      v.literal("supplement"),
-      v.literal("equipment"),
-      v.literal("food"),
-      v.literal("digital_program"),
-      v.literal("session"),
-    ),
-    imageStorageId: v.optional(v.id("_storage")),
-    isActive: v.boolean(),
-    createdAt: v.number(),
-  })
-    .index("by_sellerGymId", ["sellerGymId"])
-    .index("by_sellerTrainerProfileId", ["sellerTrainerProfileId"])
-    .index("by_category", ["category"]),
-
-  orders: defineTable({
-    productId: v.id("products"),
-    buyerUserId: v.id("users"),
-    amountJod: v.number(),
-    platformCutJod: v.number(),
-    sellerAmountJod: v.number(),
-    status: v.union(
-      v.literal("pending"),
-      v.literal("paid"),
-      v.literal("refunded"),
-    ),
-    paymentGateway: v.union(v.literal("myfatoorah"), v.literal("cliq")),
-    paymentRef: v.optional(v.string()),
-    createdAt: v.number(),
-  })
-    .index("by_buyerUserId", ["buyerUserId"])
-    .index("by_productId", ["productId"]),
-
-  joinRequests: defineTable({
-    clientUserId: v.id("users"),
-    gymId: v.optional(v.id("gyms")),
-    trainerProfileId: v.optional(v.id("personalTrainers")),
-    initiatedBy: v.union(
-      v.literal("client"),
-      v.literal("gym"),
-      v.literal("personal_trainer"),
-    ),
-    status: v.union(
-      v.literal("pending"),
-      v.literal("approved"),
-      v.literal("rejected"),
-    ),
-    message: v.optional(v.string()),
-    createdAt: v.number(),
-    resolvedAt: v.optional(v.number()),
-  })
-    .index("by_clientUserId", ["clientUserId"])
-    .index("by_gymId", ["gymId"])
-    .index("by_trainerProfileId", ["trainerProfileId"])
-    .index("by_gymId_and_status", ["gymId", "status"])
-    .index("by_trainerProfileId_and_status", ["trainerProfileId", "status"]),
 
   trainerGymAffiliation: defineTable({
     gymTrainerUserId: v.id("users"), // role === "gym_trainer"

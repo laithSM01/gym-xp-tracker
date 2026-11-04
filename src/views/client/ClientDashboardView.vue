@@ -5,10 +5,9 @@ import { useUser } from '@clerk/vue'
 import { useClientDashboard, tierConfig, tierMin, tierMax, xpProgress, formatDate } from '@/composables/useClientDashboard'
 import type { ClientService } from '@/services/clients.service'
 import type { StarterProgramsService } from '@/services/starterPrograms.service'
-import { useJoinRequests } from '@/composables/useJoinRequests'
 import type { Id } from '@convex/_generated/dataModel'
 
-type TabKey = 'workout' | 'measurements' | 'nutrition' | 'challenges' | 'requests'
+type TabKey = 'workout' | 'measurements' | 'challenges'
 
 const NAV_ICONS: { key: TabKey; svg: string }[] = [
   {
@@ -20,16 +19,8 @@ const NAV_ICONS: { key: TabKey; svg: string }[] = [
     svg: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>',
   },
   {
-    key: 'nutrition',
-    svg: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.657 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/></svg>',
-  },
-  {
     key: 'challenges',
     svg: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118L2.977 9.101c-.783-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>',
-  },
-  {
-    key: 'requests',
-    svg: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>',
   },
 ]
 
@@ -81,14 +72,9 @@ watch(clientProfile, (val) => {
 }, { immediate: true })
 
 const { data, loading: isLoading, actions } = useClientDashboard()
-const { profile, challenges, nutritionPlan, programs, recentMeasurements, completingChallengeId, todayCompletedDayIndices, claimingSession } = data
-
-const { outbound, inbound, myRequests, respondingTo, respondError, approveInbound, rejectInbound } = useJoinRequests()
-
-const STATUS_LABELS: Record<string, string> = { pending: 'Pending', approved: 'Joined', rejected: 'Declined' }
+const { profile, challenges, programs, recentMeasurements, completingChallengeId, todayCompletedDayIndices, claimingSession } = data
 
 const activeTab = ref<TabKey>('workout')
-const pendingInboundCount = computed(() => inbound.value.filter((r) => r.status === 'pending').length)
 const hasNoGymOrTrainer = computed(() => !!starterProgram.value)
 
 type NormalizedExercise = { name: string; sets: number; reps: string }
@@ -238,12 +224,6 @@ const descriptionSteps = computed(() => {
             @click="activeTab = item.key"
           >
             <span v-html="item.svg" class="h-5 w-5" />
-            <span
-              v-if="item.key === 'requests' && pendingInboundCount > 0"
-              class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center"
-            >
-              {{ pendingInboundCount }}
-            </span>
           </button>
         </nav>
 
@@ -534,43 +514,6 @@ const descriptionSteps = computed(() => {
           </div>
         </template>
 
-        <!-- ═══ NUTRITION TAB ═══ -->
-        <template v-else-if="activeTab === 'nutrition'">
-          <h2 class="text-xl font-bold text-slate-800 mb-6">Nutrition Plan</h2>
-          <div class="bg-white rounded-3xl shadow-sm p-6">
-            <div v-if="nutritionPlan === null" class="text-sm text-slate-400">No nutrition plan assigned yet.</div>
-            <template v-else-if="nutritionPlan">
-              <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                  <thead>
-                    <tr class="text-xs text-slate-400 border-b border-slate-100">
-                      <th class="text-left pb-3 font-medium">Meal</th>
-                      <th class="text-right pb-3 font-medium">Calories</th>
-                      <th class="text-right pb-3 font-medium">Protein</th>
-                      <th class="text-right pb-3 font-medium">Carbs</th>
-                      <th class="text-right pb-3 font-medium">Fat</th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-slate-50">
-                    <tr v-for="meal in nutritionPlan.meals" :key="meal.name" class="text-slate-700">
-                      <td class="py-3 font-medium">{{ meal.name }}</td>
-                      <td class="py-3 text-right">{{ meal.calories }} kcal</td>
-                      <td class="py-3 text-right">{{ meal.protein }}g</td>
-                      <td class="py-3 text-right">{{ meal.carbs }}g</td>
-                      <td class="py-3 text-right">{{ meal.fat }}g</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <div class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between gap-4">
-                <p v-if="nutritionPlan.notes" class="text-sm text-slate-500 flex-1">{{ nutritionPlan.notes }}</p>
-                <span v-else class="flex-1" />
-                <span class="text-sm font-bold text-slate-700">Total: {{ nutritionPlan.totalCalories.toLocaleString() }} kcal</span>
-              </div>
-            </template>
-          </div>
-        </template>
-
         <!-- ═══ CHALLENGES TAB ═══ -->
         <template v-else-if="activeTab === 'challenges'">
           <h2 class="text-xl font-bold text-slate-800 mb-6">Challenges</h2>
@@ -615,62 +558,6 @@ const descriptionSteps = computed(() => {
           </div>
         </template>
 
-        <!-- ═══ REQUESTS TAB ═══ -->
-        <template v-else-if="activeTab === 'requests'">
-          <h2 class="text-xl font-bold text-slate-800 mb-6">Gym &amp; Trainer Requests</h2>
-          <div class="bg-white rounded-3xl shadow-sm p-6">
-            <p v-if="respondError" class="text-sm text-red-600 mb-4">{{ respondError }}</p>
-
-            <div v-if="inbound.length > 0" class="mb-6">
-              <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Invites from Gyms &amp; Trainers</h3>
-              <ul class="flex flex-col divide-y divide-slate-100">
-                <li v-for="r in inbound" :key="r._id" class="flex items-center gap-4 py-3">
-                  <div class="flex-1 min-w-0">
-                    <p class="text-sm font-semibold text-slate-800 truncate">{{ r.initiatedBy === 'gym' ? 'Gym invite' : 'Trainer invite' }}</p>
-                    <p v-if="r.message" class="text-xs text-slate-400 truncate">{{ r.message }}</p>
-                  </div>
-                  <div class="flex items-center gap-2 shrink-0">
-                    <button v-if="r.status === 'pending'" :disabled="respondingTo === r._id"
-                      class="text-xs px-3 py-1.5 rounded-xl bg-[#3fb6a8] text-white hover:bg-[#35a096] transition-colors disabled:opacity-40"
-                      @click="approveInbound(r._id)">
-                      {{ respondingTo === r._id ? '...' : 'Accept' }}
-                    </button>
-                    <button v-if="r.status === 'pending'" :disabled="respondingTo === r._id"
-                      class="text-xs px-3 py-1.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-40"
-                      @click="rejectInbound(r._id)">
-                      Decline
-                    </button>
-                    <span v-else class="text-xs font-semibold px-2 py-0.5 rounded-full ring-1" :class="{
-                      'bg-green-100 text-green-700 ring-green-200': r.status === 'approved',
-                      'bg-slate-100 text-slate-500 ring-slate-200': r.status === 'rejected',
-                    }">{{ STATUS_LABELS[r.status] }}</span>
-                  </div>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Requests You Sent</h3>
-              <div v-if="myRequests === undefined" class="py-4 flex justify-center">
-                <div class="w-4 h-4 rounded-full border-2 border-[#3fb6a8] border-t-transparent animate-spin" />
-              </div>
-              <p v-else-if="outbound.length === 0" class="text-sm text-slate-400 py-4 text-center">No requests sent yet.</p>
-              <ul v-else class="flex flex-col divide-y divide-slate-100">
-                <li v-for="r in outbound" :key="r._id" class="flex items-center gap-4 py-3">
-                  <div class="flex-1 min-w-0">
-                    <p class="text-sm font-semibold text-slate-800 truncate">{{ r.gymId ? 'Gym request' : 'Trainer request' }}</p>
-                    <p class="text-xs text-slate-400">{{ new Date(r.createdAt).toLocaleDateString() }}</p>
-                  </div>
-                  <span class="shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full ring-1" :class="{
-                    'bg-yellow-100 text-yellow-700 ring-yellow-200': r.status === 'pending',
-                    'bg-green-100 text-green-700 ring-green-200': r.status === 'approved',
-                    'bg-slate-100 text-slate-500 ring-slate-200': r.status === 'rejected',
-                  }">{{ STATUS_LABELS[r.status] }}</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </template>
 
       </main>
     </div>

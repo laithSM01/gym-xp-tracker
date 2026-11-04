@@ -2,7 +2,6 @@
 import { computed, inject, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import type { GymService } from '@/services/gyms.service'
-import { useIncomingRequests } from '@/composables/useIncomingRequests'
 
 const gymsService = inject<GymService>('gymsService')!
 const router = useRouter()
@@ -15,8 +14,6 @@ watch(
   },
   { immediate: true },
 )
-
-const { pendingRequests } = useIncomingRequests()
 
 const planLabel = computed(() => {
   const plan = dashboard.value?.subscription?.plan
@@ -38,11 +35,10 @@ function usagePct(used: number, limit: number) {
 // -- Hero call-to-action: routes based on current state, most useful action first
 const heroCta = computed(() => {
   if (!dashboard.value?.subscription) return { label: 'View Plans', to: '/gym/billing' }
-  if ((pendingRequests.value?.length ?? 0) > 0) return { label: 'Review Requests', to: '/gym/requests' }
   return { label: 'Invite a Trainer', to: '/gym/trainers' }
 })
 
-// -- Plan usage radial chart (Trainers / Clients / Products vs plan limits)
+// -- Plan usage radial chart (Trainers / Clients vs plan limits)
 const usageSeries = computed(() => {
   const gym = dashboard.value?.gym
   const limits = dashboard.value?.limits
@@ -50,7 +46,6 @@ const usageSeries = computed(() => {
   const entries: number[] = []
   if (limits.trainers > 0) entries.push(usagePct(gym.trainersUsed, limits.trainers))
   entries.push(usagePct(gym.clientsAdded, limits.clients))
-  entries.push(usagePct(gym.productsListed, limits.products))
   return entries
 })
 
@@ -60,7 +55,6 @@ const usageLabels = computed(() => {
   const labels: string[] = []
   if (limits.trainers > 0) labels.push('Trainers')
   labels.push('Clients')
-  labels.push('Products')
   return labels
 })
 
@@ -123,7 +117,6 @@ const capacity = computed(() => {
   const candidates = [
     { label: 'Trainers', used: gym.trainersUsed, limit: limits.trainers },
     { label: 'Clients', used: gym.clientsAdded, limit: limits.clients },
-    { label: 'Products', used: gym.productsListed, limit: limits.products },
   ].filter((c) => c.limit > 0)
   if (candidates.length === 0) return null
   return candidates.reduce((a, b) => (usagePct(a.used, a.limit) >= usagePct(b.used, b.limit) ? a : b))
@@ -188,7 +181,6 @@ const capacityChartOptions = computed(() => ({
           <p class="text-sm font-semibold text-accent-500 mb-1">Welcome back, {{ dashboard.gym.name }}</p>
           <h1 class="text-2xl sm:text-3xl font-bold text-white max-w-md leading-snug">
             <template v-if="!dashboard.subscription">Ready to unlock your gym's full potential?</template>
-            <template v-else-if="(pendingRequests?.length ?? 0) > 0">You have {{ pendingRequests?.length }} client{{ (pendingRequests?.length ?? 0) === 1 ? '' : 's' }} waiting for approval</template>
             <template v-else>Ready to grow your club today?</template>
           </h1>
         </div>
@@ -207,13 +199,13 @@ const capacityChartOptions = computed(() => ({
           <apexchart type="radialBar" height="260" :options="usageChartOptions" :series="usageSeries" />
         </div>
         <p v-else class="text-sm text-ink-400 text-center py-10">
-          Upgrade to a plan to unlock trainer slots, client capacity, and product listings.
+          Upgrade to a plan to unlock trainer slots and client capacity.
         </p>
       </div>
     </div>
 
     <!-- Stat tiles -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
       <div class="rounded-2xl bg-ink-800 border border-white/5 p-6 flex flex-col gap-3">
         <div class="flex items-center justify-between">
           <h3 class="text-sm font-semibold text-ink-400">Current Members</h3>
@@ -240,20 +232,6 @@ const capacityChartOptions = computed(() => ({
         <p v-if="dashboard.limits && dashboard.limits.trainers > 0" class="text-xs text-ink-400">of {{ dashboard.limits.trainers }} plan capacity</p>
       </div>
 
-      <div class="rounded-2xl bg-ink-800 border border-white/5 p-6 flex flex-col gap-3">
-        <div class="flex items-center justify-between">
-          <h3 class="text-sm font-semibold text-ink-400">Pending Requests</h3>
-          <div class="h-9 w-9 rounded-xl bg-violet-400/15 text-violet-400 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-        </div>
-        <p class="text-3xl font-bold text-white">{{ pendingRequests?.length ?? 0 }}</p>
-        <RouterLink to="/gym/requests" class="text-xs font-semibold text-accent-500 hover:text-accent-600 transition-colors">
-          Review now
-        </RouterLink>
-      </div>
     </div>
 
     <!-- Clients-per-trainer + Capacity gauge row -->

@@ -37,21 +37,6 @@ export type Challenges = {
   completed: Challenge[]
 }
 
-export type Meal = {
-  name: string
-  calories: number
-  protein: number
-  carbs: number
-  fat: number
-}
-
-export type NutritionPlan = {
-  _id: string
-  meals: Meal[]
-  totalCalories: number
-  notes?: string
-}
-
 export type TrainerClient = {
   _id: string
   userName: string
@@ -121,7 +106,6 @@ export type ClientDetail = {
   currentXP: number
   currentTier: Tier
   isEnrolled: boolean
-  nutritionistAccess?: boolean
   challenges: Challenge[]
   xpLogs: XPLog[]
 }

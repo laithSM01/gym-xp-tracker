@@ -24,7 +24,6 @@ vi.mock('@convex/_generated/api', () => ({
     clients: {
       getClientById: 'clients:getClientById',
       awardXP: 'clients:awardXP',
-      toggleNutritionistAccess: 'clients:toggleNutritionistAccess',
     },
     measurements: {
       getClientMeasurements: 'measurements:getClientMeasurements',
@@ -171,9 +170,6 @@ describe('useClientDetail', () => {
       expect(result.data.lastXPResult.value).toBeNull()
     })
 
-    it('isTogglingAccess is false', () => {
-      expect(result.data.isTogglingAccess.value).toBe(false)
-    })
 
     it('error is null', () => {
       expect(result.error).toBeNull()
@@ -470,39 +466,6 @@ describe('useClientDetail', () => {
         await result.actions.logMeasurement(input)
         expect(result.data.logError.value).toBe('Failed to log measurement')
       })
-    })
-  })
-
-  // -------------------------------------------------------------------------
-  describe('toggleNutritionistAccess', () => {
-    it('resets isTogglingAccess to false after success', async () => {
-      mockHelpers.mockMutation.mockResolvedValue(undefined)
-      await result.actions.toggleNutritionistAccess()
-      expect(result.data.isTogglingAccess.value).toBe(false)
-    })
-
-    it('sets isTogglingAccess to true while mutation is pending', async () => {
-      let resolve!: () => void
-      mockHelpers.mockMutation.mockReturnValue(new Promise<void>((r) => { resolve = r }))
-      const promise = result.actions.toggleNutritionistAccess()
-      expect(result.data.isTogglingAccess.value).toBe(true)
-      resolve()
-      await promise
-    })
-
-    it('resets isTogglingAccess to false even on failure', async () => {
-      mockHelpers.mockMutation.mockRejectedValue(new Error('fail'))
-      await result.actions.toggleNutritionistAccess().catch(() => {})
-      expect(result.data.isTogglingAccess.value).toBe(false)
-    })
-
-    it('calls the correct mutation with the clientId', async () => {
-      mockHelpers.mockMutation.mockResolvedValue(undefined)
-      await result.actions.toggleNutritionistAccess()
-      expect(mockHelpers.mockMutation).toHaveBeenCalledWith(
-        'clients:toggleNutritionistAccess',
-        expect.objectContaining({ clientId: CLIENT_ID }),
-      )
     })
   })
 

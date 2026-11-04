@@ -2,7 +2,7 @@ import { ref, onUnmounted } from 'vue'
 import type { ConvexClient } from 'convex/browser'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
-import type { GymService, GymProfile, CreateGymInput, UpdateGymInput, GymDashboardData, GymPublicPageData } from '../gyms.service'
+import type { GymService, GymProfile, CreateGymInput, UpdateGymInput, GymDashboardData } from '../gyms.service'
 
 export class ConvexGymsService implements GymService {
   private client: ConvexClient
@@ -27,24 +27,6 @@ export class ConvexGymsService implements GymService {
     })
     onUnmounted(() => unsub())
     return dashboard
-  }
-
-  listPublic() {
-    const gyms = ref<GymProfile[]>([])
-    const unsub = this.client.onUpdate(api.gyms.listPublic, {}, (data) => {
-      gyms.value = (data as GymProfile[]) ?? []
-    })
-    onUnmounted(() => unsub())
-    return gyms
-  }
-
-  getGymPublicPage(gymId: Id<'gyms'>) {
-    const page = ref<GymPublicPageData | null | undefined>(undefined)
-    const unsub = this.client.onUpdate(api.gyms.getGymPublicPage, { gymId }, (data) => {
-      page.value = (data as GymPublicPageData | null) ?? null
-    })
-    onUnmounted(() => unsub())
-    return page
   }
 
   async createGym(data: CreateGymInput): Promise<Id<'gyms'>> {

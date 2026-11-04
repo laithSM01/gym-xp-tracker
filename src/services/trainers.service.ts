@@ -1,6 +1,5 @@
 import type { Ref } from 'vue'
 import type { Id } from '../../convex/_generated/dataModel'
-import type { ProductSummary } from './gyms.service'
 
 export interface TrainerProfile {
   _id: Id<'personalTrainers'>
@@ -14,7 +13,6 @@ export interface TrainerProfile {
   coverPhotoStorageId?: Id<'_storage'>
   isActive: boolean
   clientsAdded: number
-  productsListed: number
   createdAt: number
 }
 
@@ -26,11 +24,6 @@ export interface CreateTrainerInput {
   instagramHandle?: string
   profilePhotoStorageId?: Id<'_storage'>
   coverPhotoStorageId?: Id<'_storage'>
-}
-
-export interface TrainerPublicProfile extends TrainerProfile {
-  name: string
-  profilePhotoUrl?: string | null
 }
 
 export interface TrainerDashboardClient {
@@ -51,7 +44,6 @@ export interface TrainerSubscriptionSummary {
 
 export interface TrainerDashboardLimits {
   clients: number
-  products: number
 }
 
 export interface TrainerDashboardData {
@@ -60,26 +52,6 @@ export interface TrainerDashboardData {
   subscription: TrainerSubscriptionSummary | null
   clients: TrainerDashboardClient[]
   limits: TrainerDashboardLimits | null
-}
-
-export interface TrainerPublicProfileData {
-  _id: Id<'personalTrainers'>
-  userId: Id<'users'>
-  bio?: string
-  certifications: string[]
-  specializations: string[]
-  yearsOfExperience?: number
-  instagramHandle?: string
-  profilePhotoUrl: string | null
-  coverPhotoUrl: string | null
-  isActive: boolean
-  createdAt: number
-}
-
-export interface TrainerPublicPageData {
-  trainerProfile: TrainerPublicProfileData
-  name: string
-  products: ProductSummary[]
 }
 
 export interface TrainerProgramsBoardEntry {
@@ -99,8 +71,6 @@ export interface TrainerService {
   getMyTrainerProfile(): Ref<TrainerProfile | null | undefined>
   getTrainerDashboard(): Ref<TrainerDashboardData | null | undefined>
   getProgramsBoard(): Ref<TrainerProgramsBoardEntry[] | null | undefined>
-  listPublic(): Ref<TrainerPublicProfile[]>
-  getTrainerPublicPage(trainerProfileId: Id<'personalTrainers'>): Ref<TrainerPublicPageData | null | undefined>
   createTrainerProfile(data: CreateTrainerInput): Promise<Id<'personalTrainers'>>
   generateUploadUrl(): Promise<string>
 }

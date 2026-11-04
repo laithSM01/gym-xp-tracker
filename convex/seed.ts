@@ -67,7 +67,6 @@ export const runSeed = internalMutation({
       isActive: true,
       trainersUsed: 2,
       clientsAdded: 0,
-      productsListed: 0,
       createdAt: now,
     });
 
@@ -86,7 +85,6 @@ export const runSeed = internalMutation({
       isActive: true,
       trainersUsed: 2,
       clientsAdded: 0,
-      productsListed: 0,
       createdAt: now,
     });
 
@@ -104,7 +102,6 @@ export const runSeed = internalMutation({
       isActive: true,
       trainersUsed: 2,
       clientsAdded: 0,
-      productsListed: 0,
       createdAt: now,
     });
 
@@ -124,7 +121,6 @@ export const runSeed = internalMutation({
       isActive: true,
       trainersUsed: 2,
       clientsAdded: 0,
-      productsListed: 0,
       createdAt: now,
     });
 
@@ -143,7 +139,6 @@ export const runSeed = internalMutation({
       isActive: true,
       trainersUsed: 2,
       clientsAdded: 0,
-      productsListed: 0,
       createdAt: now,
     });
 
@@ -284,7 +279,6 @@ export const runSeed = internalMutation({
         yearsOfExperience: pt.yearsOfExperience,
         isActive: true,
         clientsAdded: 0,
-        productsListed: 0,
         createdAt: now,
       });
       ptProfileIds.push(profileId);
@@ -529,7 +523,6 @@ export const runSeed = internalMutation({
         isEnrolled: c.isEnrolled,
         currentXP: c.xp,
         currentTier: tierFromXP(c.xp),
-        nutritionistAccess: false,
         createdAt: now,
       });
       clientIds.push(clientId);

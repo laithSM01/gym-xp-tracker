@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { effectScope, nextTick } from 'vue'
-import type { Profile, Measurement, Challenges, NutritionPlan } from '@/types/client'
+import { effectScope } from 'vue'
+import type { Profile, Measurement, Challenges } from '@/types/client'
 import { xpProgress, formatDate, tierConfig, tierMin, tierMax } from '@/utils/xp'
 import { useClientDashboard } from './useClientDashboard'
 
@@ -22,7 +22,6 @@ vi.mock('@convex/_generated/api', () => ({
     clients: { getMyProfile: 'clients:getMyProfile' },
     measurements: { getMyMeasurements: 'measurements:getMyMeasurements' },
     challenges: { getMyChallenges: 'challenges:getMyChallenges' },
-    nutritionPlans: { getNutritionPlan: 'nutritionPlans:getNutritionPlan' },
   },
 }))
 
@@ -154,7 +153,7 @@ const makeMeasurements = (count: number): Measurement[] =>
 
 describe('useClientDashboard', () => {
   // Callbacks captured from convex.onUpdate calls (by call order):
-  //   [0] profile   [1] measurements   [2] challenges   [3] nutritionPlan (lazy)
+  //   [0] profile   [1] measurements   [2] challenges
   let updateCallbacks: ((data: unknown) => void)[]
   let unsubFns: ReturnType<typeof vi.fn>[]
   let scope: ReturnType<typeof effectScope>
@@ -196,10 +195,6 @@ describe('useClientDashboard', () => {
 
     it('starts with challenges as null', () => {
       expect(result.data.challenges.value).toBeNull()
-    })
-
-    it('starts with nutritionPlan as undefined', () => {
-      expect(result.data.nutritionPlan.value).toBeUndefined()
     })
 
     it('starts with loading true', () => {
@@ -285,46 +280,6 @@ describe('useClientDashboard', () => {
   })
 
   // -------------------------------------------------------------------------
-  describe('nutrition plan subscription (lazy)', () => {
-    it('does not subscribe to nutrition plan before profile arrives', () => {
-      expect(mockHelpers.mockOnUpdate).toHaveBeenCalledTimes(3)
-    })
-
-    it('subscribes to nutrition plan once profile becomes available', async () => {
-      updateCallbacks[0]!(mockProfile)
-      await nextTick()
-      expect(mockHelpers.mockOnUpdate).toHaveBeenCalledTimes(4)
-    })
-
-    it('does not subscribe a second time when profile updates again', async () => {
-      updateCallbacks[0]!(mockProfile)
-      await nextTick()
-      updateCallbacks[0]!({ ...mockProfile, currentXP: 800 })
-      await nextTick()
-      expect(mockHelpers.mockOnUpdate).toHaveBeenCalledTimes(4)
-    })
-
-    it('sets nutritionPlan when nutrition callback fires', async () => {
-      const mockPlan: NutritionPlan = {
-        _id: 'np1',
-        meals: [{ name: 'Breakfast', calories: 400, protein: 30, carbs: 50, fat: 10 }],
-        totalCalories: 400,
-      }
-      updateCallbacks[0]!(mockProfile)
-      await nextTick()
-      updateCallbacks[3]!(mockPlan)
-      expect(result.data.nutritionPlan.value).toEqual(mockPlan)
-    })
-
-    it('sets nutritionPlan to null when callback fires with null', async () => {
-      updateCallbacks[0]!(mockProfile)
-      await nextTick()
-      updateCallbacks[3]!(null)
-      expect(result.data.nutritionPlan.value).toBeNull()
-    })
-  })
-
-  // -------------------------------------------------------------------------
   describe('recentMeasurements', () => {
     it('returns empty array when measurements is null', () => {
       expect(result.data.recentMeasurements.value).toEqual([])
@@ -358,17 +313,6 @@ describe('useClientDashboard', () => {
       expect(unsubFns[0]).toHaveBeenCalledOnce()
       expect(unsubFns[1]).toHaveBeenCalledOnce()
       expect(unsubFns[2]).toHaveBeenCalledOnce()
-    })
-
-    it('also calls nutrition plan unsub when subscription was started', async () => {
-      updateCallbacks[0]!(mockProfile)
-      await nextTick()
-      mockHelpers.onUnmountedCallbacks[0]!()
-      expect(unsubFns[3]).toHaveBeenCalledOnce()
-    })
-
-    it('does not throw on unmount if nutrition plan subscription was never started', () => {
-      expect(() => mockHelpers.onUnmountedCallbacks[0]!()).not.toThrow()
     })
   })
 })

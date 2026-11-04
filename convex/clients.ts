@@ -64,10 +64,8 @@ export const getClientById = query({
 
     const isClient = client.userId === caller._id;
     const isTrainer = client.trainerId === caller._id;
-    const isNutritionist =
-      caller.role === "nutritionist" && client.nutritionistAccess === true;
 
-    if (!isClient && !isTrainer && !isNutritionist) return null;
+    if (!isClient && !isTrainer) return null;
 
     const user = await ctx.db.get(client.userId);
 
@@ -270,7 +268,6 @@ export const createClient = mutation({
       isEnrolled: true,
       currentXP: 0,
       currentTier: args.initialTier,
-      nutritionistAccess: false,
       createdAt: Date.now(),
     });
 
@@ -353,7 +350,6 @@ export const createMyProfile = mutation({
       isEnrolled: false,
       currentXP: 0,
       currentTier: initialTier,
-      nutritionistAccess: false,
       createdAt: Date.now(),
     });
 
@@ -366,46 +362,6 @@ export const createMyProfile = mutation({
     });
 
     return clientId;
-  },
-});
-
-export const getAccessibleClients = query({
-  args: {},
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
-
-    const caller = await ctx.db
-      .query("users")
-      .withIndex("by_token", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier),
-      )
-      .unique();
-    if (!caller || caller.role !== "nutritionist") return null;
-
-    const allClients = await ctx.db
-      .query("clients")
-      .take(200);
-
-    const accessible = allClients.filter(
-      (c) => c.nutritionistAccess === true,
-    );
-
-    const enriched = await Promise.all(
-      accessible.map(async (client) => {
-        const user = await ctx.db.get(client.userId);
-        return {
-          _id: client._id,
-          userName: user?.name ?? user?.email ?? "Unknown",
-          currentTier: client.currentTier,
-          currentXP: client.currentXP,
-          goal: client.goal,
-          age: client.age,
-        };
-      }),
-    );
-
-    return enriched.sort((a, b) => b.currentXP - a.currentXP);
   },
 });
 
@@ -431,27 +387,3 @@ export const updateClientGoal = mutation({
     await ctx.db.patch(args.clientId, { goal: args.goal })
   },
 })
-
-export const toggleNutritionistAccess = mutation({
-  args: { clientId: v.id("clients") },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
-    const trainer = await ctx.db
-      .query("users")
-      .withIndex("by_token", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier),
-      )
-      .unique();
-    if (!trainer) throw new Error("Trainer not found");
-
-    const client = await ctx.db.get(args.clientId);
-    if (!client) throw new Error("Client not found");
-    if (client.trainerId !== trainer._id) throw new Error("Not authorized");
-
-    await ctx.db.patch(args.clientId, {
-      nutritionistAccess: !client.nutritionistAccess,
-    });
-  },
-});

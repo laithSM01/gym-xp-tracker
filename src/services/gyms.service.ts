@@ -11,15 +11,6 @@ export interface PricingPlan {
   offerExpiresAt?: number
 }
 
-export interface ProductSummary {
-  _id: Id<'products'>
-  name: string
-  description: string
-  priceJod: number
-  category: 'supplement' | 'equipment' | 'food' | 'digital_program' | 'session'
-  imageUrl: string | null
-}
-
 export interface GymProfile {
   _id: Id<'gyms'>
   ownerId: Id<'users'>
@@ -40,7 +31,6 @@ export interface GymProfile {
   isActive: boolean
   trainersUsed: number
   clientsAdded: number
-  productsListed: number
   createdAt: number
 }
 
@@ -116,7 +106,6 @@ export interface GymDashboardClient {
 export interface GymDashboardLimits {
   trainers: number
   clients: number
-  products: number
 }
 
 export interface GymSubscriptionSummary {
@@ -133,42 +122,9 @@ export interface GymDashboardData {
   limits: GymDashboardLimits | null
 }
 
-export interface GymPublicTrainer {
-  userId: Id<'users'>
-  name: string
-  email: string | null
-  affiliationRole: 'trainer' | 'head_trainer'
-}
-
-export interface GymPublicInfo {
-  _id: Id<'gyms'>
-  name: string
-  bio?: string
-  location: string
-  city: string
-  genderType?: GenderType
-  openingHours?: OpeningHours
-  genderSections?: GenderSection[]
-  classSchedules?: ClassSchedule[]
-  facilities: string[]
-  pricingPlans: PricingPlan[]
-  logoUrl: string | null
-  coverPhotoUrl: string | null
-  isActive: boolean
-  createdAt: number
-}
-
-export interface GymPublicPageData {
-  gym: GymPublicInfo
-  trainers: GymPublicTrainer[]
-  products: ProductSummary[]
-}
-
 export interface GymService {
   getMyGym(): Ref<GymProfile | null | undefined>
   getGymDashboard(): Ref<GymDashboardData | null | undefined>
-  listPublic(): Ref<GymProfile[]>
-  getGymPublicPage(gymId: Id<'gyms'>): Ref<GymPublicPageData | null | undefined>
   createGym(data: CreateGymInput): Promise<Id<'gyms'>>
   updateGym(data: UpdateGymInput): Promise<void>
   generateUploadUrl(): Promise<string>

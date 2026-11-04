@@ -16,24 +16,6 @@ const pricingPlanValidator = v.object({
   offerExpiresAt: v.optional(v.number()),
 });
 
-export const listPublic = query({
-  args: {},
-  handler: async (ctx) => {
-    const gyms = await ctx.db
-      .query("gyms")
-      .withIndex("by_isActive", (q) => q.eq("isActive", true))
-      .order("desc")
-      .take(20);
-    return Promise.all(
-      gyms.map(async (gym) => ({
-        ...gym,
-        logoUrl: gym.logoStorageId ? await ctx.storage.getUrl(gym.logoStorageId) : null,
-        coverPhotoUrl: gym.coverPhotoStorageId ? await ctx.storage.getUrl(gym.coverPhotoStorageId) : null,
-      })),
-    );
-  },
-});
-
 export const getMyGym = query({
   args: {},
   handler: async (ctx) => {
@@ -122,7 +104,6 @@ export const createGym = mutation({
       isActive: true,
       trainersUsed: 0,
       clientsAdded: 0,
-      productsListed: 0,
       createdAt: Date.now(),
     });
   },
@@ -251,85 +232,5 @@ export const updateGym = mutation({
     if (args.coverPhotoStorageId !== undefined) patch.coverPhotoStorageId = args.coverPhotoStorageId;
 
     await ctx.db.patch(gym._id, patch);
-  },
-});
-
-export const getGymPublicPage = query({
-  args: { gymId: v.id("gyms") },
-  handler: async (ctx, args) => {
-    const gym = await ctx.db.get(args.gymId);
-    if (!gym || !gym.isActive) return null;
-
-    const logoUrl = gym.logoStorageId
-      ? await ctx.storage.getUrl(gym.logoStorageId)
-      : null;
-    const coverPhotoUrl = gym.coverPhotoStorageId
-      ? await ctx.storage.getUrl(gym.coverPhotoStorageId)
-      : null;
-
-    const affiliations = await ctx.db
-      .query("trainerGymAffiliation")
-      .withIndex("by_gymId_and_isActive", (q) =>
-        q.eq("gymId", args.gymId).eq("isActive", true),
-      )
-      .take(20);
-
-    const trainers = await Promise.all(
-      affiliations.map(async (aff) => {
-        const user = await ctx.db.get(aff.gymTrainerUserId);
-        return {
-          userId: aff.gymTrainerUserId,
-          name: user?.name ?? user?.email ?? "Trainer",
-          email: user?.email ?? null,
-          affiliationRole: aff.affiliationRole,
-        };
-      }),
-    );
-
-    const allProducts = await ctx.db
-      .query("products")
-      .withIndex("by_sellerGymId", (q) => q.eq("sellerGymId", args.gymId))
-      .take(100);
-
-    const products = await Promise.all(
-      allProducts
-        .filter((p) => p.isActive)
-        .slice(0, 50)
-        .map(async (p) => {
-          const imageUrl = p.imageStorageId
-            ? await ctx.storage.getUrl(p.imageStorageId)
-            : null;
-          return {
-            _id: p._id,
-            name: p.name,
-            description: p.description,
-            priceJod: p.priceJod,
-            category: p.category,
-            imageUrl,
-          };
-        }),
-    );
-
-    return {
-      gym: {
-        _id: gym._id,
-        name: gym.name,
-        bio: gym.bio,
-        location: gym.location,
-        city: gym.city,
-        genderType: gym.genderType,
-        openingHours: gym.openingHours,
-        genderSections: gym.genderSections,
-        classSchedules: gym.classSchedules,
-        facilities: gym.facilities,
-        pricingPlans: gym.pricingPlans,
-        logoUrl,
-        coverPhotoUrl,
-        isActive: gym.isActive,
-        createdAt: gym.createdAt,
-      },
-      trainers,
-      products,
-    };
   },
 });

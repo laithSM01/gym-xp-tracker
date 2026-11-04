@@ -11,8 +11,8 @@ const router = createRouter({
       children: [
         {
           path: '',
-          name: 'landing',
-          component: () => import('@/views/public/LandingView.vue'),
+          name: 'home',
+          component: () => import('@/views/public/HomeView.vue'),
         },
       ],
     },
@@ -39,12 +39,6 @@ const router = createRouter({
           component: () => import('@/views/client/ClientDashboardView.vue'),
         },
       ],
-    },
-    // Public profile pages — no auth required
-    {
-      path: '/gym/:gymId',
-      name: 'gymPublicProfile',
-      component: () => import('@/views/public/GymPublicView.vue'),
     },
     // Trainer routes — persistent sidebar app-shell
     {
@@ -107,14 +101,6 @@ const router = createRouter({
           component: () => import('@/views/gym/GymClientsView.vue'),
         },
         {
-          path: 'gym/products',
-          component: () => import('@/views/gym/GymProductsView.vue'),
-        },
-        {
-          path: 'gym/requests',
-          component: () => import('@/views/gym/GymRequestsView.vue'),
-        },
-        {
           path: 'gym/edit',
           component: () => import('@/views/gym/GymEditView.vue'),
         },
@@ -144,14 +130,6 @@ const router = createRouter({
           component: () => import('@/views/client/ClientSetupView.vue'),
         },
         {
-          path: 'nutritionist/dashboard',
-          component: () => import('@/views/nutritionist/NutritionistDashboardView.vue'),
-        },
-        {
-          path: 'nutritionist/client/:clientId',
-          component: () => import('@/views/nutritionist/ClientNutritionView.vue'),
-        },
-        {
           path: 'gym/setup',
           component: () => import('@/views/gym/GymSetupView.vue'),
         },
@@ -172,7 +150,6 @@ const roleDashboard: Record<string, string> = {
   trainer: '/trainer/dashboard',
   gym_trainer: '/gym-trainer/dashboard',
   client: '/client/dashboard',
-  nutritionist: '/nutritionist/dashboard',
   gym_owner: '/gym/dashboard',
 }
 
@@ -180,7 +157,6 @@ const rolePrefix: Record<string, string> = {
   trainer: '/trainer/',
   gym_trainer: '/gym-trainer/',
   client: '/client/',
-  nutritionist: '/nutritionist/',
   gym_owner: '/gym/',
 }
 
@@ -190,9 +166,7 @@ router.beforeEach(async (to) => {
   const authStore = useAuthStore()
   await authStore.waitForLoad()
 
-  const isPublicRoute =
-    PUBLIC_PATHS.includes(to.path) ||
-    to.name === 'gymPublicProfile'
+  const isPublicRoute = PUBLIC_PATHS.includes(to.path)
 
   // Public paths are always accessible
   if (isPublicRoute) {

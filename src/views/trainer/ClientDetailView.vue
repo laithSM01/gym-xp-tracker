@@ -34,7 +34,6 @@ const {
   isLogging,
   logError,
   lastXPResult,
-  isTogglingAccess,
   isAddingChallenge,
   addChallengeError,
   addChallengeSuccess,
@@ -205,19 +204,6 @@ const showToast = computed(() => !!toastMessage.value)
             </p>
           </div>
           <div class="flex items-center gap-3 shrink-0">
-            <!-- Nutritionist access toggle -->
-            <button :disabled="isTogglingAccess"
-              class="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-xl border transition-colors disabled:opacity-50"
-              :class="client.nutritionistAccess
-                ? 'bg-brand-50 text-brand-600 border-brand-100 hover:bg-brand-100'
-                : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'"
-              @click="actions.toggleNutritionistAccess()">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-              {{ client.nutritionistAccess ? 'Nutritionist: ON' : 'Nutritionist: OFF' }}
-            </button>
             <Badge :badge-class="tierConfig[client.currentTier].badge">
               {{ tierConfig[client.currentTier].label }}
             </Badge>
